@@ -281,3 +281,74 @@ class TestDatasetProfile:
         assert d['n_rows'] == 1000
         assert 'gender' in d['column_types']
         assert 'gender' in d['protected_attribute_distributions']
+
+
+class TestEnhancedReportSections:
+    """Tests for profile, group-stats, visualization, and config sections."""
+
+    def _report_with_details(self, sample_report):
+        sample_report.profile = DatasetProfile(
+            n_rows=500,
+            n_columns=6,
+            column_types={'gender': 'object', 'approved': 'int64'},
+            protected_attribute_distributions={
+                'gender': {'male': 0.7, 'female': 0.3}
+            },
+            target_distribution={'1': 0.65, '0': 0.35},
+            missing_rates={'income': 0.08, 'gender': 0.0},
+        )
+        sample_report.group_stats = {
+            'gender': {
+                'groups': [
+                    {'group': 'male', 'count': 350, 'share': 0.7, 'positive_rate': 0.72},
+                    {'group': 'female', 'count': 150, 'share': 0.3, 'positive_rate': 0.49},
+                ],
+                'chi2_p_value': 0.0000012,
+            }
+        }
+        sample_report.visualizations = {
+            'distribution_gender': '<div class="plotly-graph-div">chart</div>',
+        }
+        sample_report.config_summary = {
+            'protected_attributes': ['gender'],
+            'target_column': 'approved',
+        }
+        return sample_report
+
+    def test_profile_section_rendered(self, sample_report):
+        html = generate_html_report(self._report_with_details(sample_report))
+        assert "Dataset Overview" in html
+        assert "500" in html
+        assert "Target Distribution" in html
+        assert "Missing Data" in html
+
+    def test_group_stats_table_rendered(self, sample_report):
+        html = generate_html_report(self._report_with_details(sample_report))
+        assert "Group Breakdown" in html
+        assert "male" in html
+        assert "72.0%" in html
+        assert "Chi-square" in html
+        assert "statistically significant" in html
+
+    def test_visualizations_embedded(self, sample_report):
+        html = generate_html_report(self._report_with_details(sample_report))
+        assert "Visualizations" in html
+        assert "plotly-graph-div" in html
+
+    def test_config_appendix_rendered(self, sample_report):
+        html = generate_html_report(self._report_with_details(sample_report))
+        assert "Audit Configuration" in html
+        assert "config-appendix" in html
+
+    def test_sections_absent_when_no_data(self, sample_report):
+        html = generate_html_report(sample_report)
+        assert "Group Breakdown" not in html
+        assert "Visualizations</h2>" not in html
+
+    def test_auto_detection_notes_rendered(self, sample_report):
+        report = self._report_with_details(sample_report)
+        report.config_summary['auto_detection'] = {
+            'notes': ["Detected protected attribute 'gender' (gender)."]
+        }
+        html = generate_html_report(report)
+        assert "Auto-detection was used" in html

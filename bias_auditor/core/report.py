@@ -142,6 +142,11 @@ class AuditReport:
     
     # Configuration used
     config_summary: dict = field(default_factory=dict)
+
+    # Per-group statistics for each protected attribute:
+    # {attr: {"groups": [{"group", "count", "share", "positive_rate"}, ...],
+    #         "chi2_p_value": float | None}}
+    group_stats: dict[str, dict] = field(default_factory=dict)
     
     # Visualizations (file paths or base64 encoded)
     visualizations: dict[str, str] = field(default_factory=dict)
@@ -276,6 +281,7 @@ class AuditReport:
             "overall_bias_score": self.overall_bias_score,
             "category_scores": self.category_scores,
             "config_summary": self.config_summary,
+            "group_stats": self.group_stats,
             "executive_summary": self.executive_summary,
         }
     

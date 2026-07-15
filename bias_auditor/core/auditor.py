@@ -80,6 +80,7 @@ class BiasAuditor:
         llm_model: Optional[str] = None,
         llm_api_key: Optional[str] = None,
         config: Optional[AuditConfig] = None,
+        auto_detect: bool = False,
         verbose: bool = True,
     ):
         # Use provided config or build from parameters
@@ -99,6 +100,7 @@ class BiasAuditor:
                 positive_label=positive_label,
                 thresholds=thresholds or BiasThresholds(),
                 llm_config=llm_config,
+                auto_detect=auto_detect,
                 verbose=verbose,
             )
         
@@ -188,7 +190,29 @@ class BiasAuditor:
             Complete audit report with findings and recommendations.
         """
         skip_detectors = skip_detectors or []
-        
+
+        # Auto-detect protected attributes / target if requested
+        detection_summary = None
+        if self.config.auto_detect and not self.config.protected_attributes:
+            from bias_auditor.core.auto_detect import auto_detect
+
+            data, detection = auto_detect(data, target_column=self.config.target_column)
+            self.config.protected_attributes = detection.protected_attributes
+            self.config.target_column = detection.target_column
+            if detection.positive_label is not None:
+                self.config.positive_label = detection.positive_label
+            detection_summary = detection.to_dict()
+
+            if self.config.verbose:
+                print("🔎 Auto-detection results:")
+                for note in detection.notes:
+                    print(f"   • {note}")
+            if not detection.protected_attributes:
+                raise ValueError(
+                    "Auto-detection found no protected attribute columns. "
+                    "Specify protected_attributes explicitly."
+                )
+
         # Create report
         report = AuditReport(
             audit_id=str(uuid4())[:8],
@@ -196,12 +220,15 @@ class BiasAuditor:
             dataset_name=dataset_name,
             config_summary=self.config.to_dict(),
         )
-        
+        if detection_summary:
+            report.config_summary["auto_detection"] = detection_summary
+
         # Validate data
         self._validate_data(data)
-        
-        # Create dataset profile
+
+        # Create dataset profile and per-group statistics
         report.profile = self._create_profile(data)
+        report.group_stats = self._compute_group_stats(data)
         
         if self.config.verbose:
             print(f"🔍 Starting bias audit on {len(data)} rows, {len(data.columns)} columns")
@@ -248,6 +275,24 @@ class BiasAuditor:
             for finding in findings:
                 report.add_finding(finding)
         
+        # Generate embedded visualizations for the HTML report
+        if self.config.generate_visualizations:
+            if self.config.verbose:
+                print("   → Generating visualizations...")
+            try:
+                from bias_auditor.visualizations import generate_all_visualizations
+
+                report.visualizations = generate_all_visualizations(
+                    data=data,
+                    protected_attrs=self.config.protected_attributes,
+                    target_column=self.config.target_column,
+                    positive_label=self.config.positive_label,
+                    category_scores=report.category_scores,
+                )
+            except ImportError:
+                if self.config.verbose:
+                    print("     (skipped: matplotlib/plotly not installed)")
+
         # Generate LLM explanations if available
         if self.llm_explainer is not None and self.config.llm_config.enable_explanations:
             if self.config.verbose:
@@ -378,6 +423,58 @@ class BiasAuditor:
             missing_rates=missing_rates,
         )
     
+    def _compute_group_stats(self, data: pd.DataFrame) -> dict[str, dict]:
+        """
+        Compute per-group statistics for each protected attribute.
+
+        For each attribute: group counts, dataset share, positive-outcome rate
+        (when a target is configured), and a chi-square p-value testing
+        independence between the attribute and the target.
+        """
+        stats: dict[str, dict] = {}
+        has_target = (
+            self.config.target_column is not None
+            and self.config.target_column in data.columns
+        )
+
+        for attr in self.config.protected_attributes:
+            if attr not in data.columns:
+                continue
+
+            counts = data[attr].value_counts(dropna=True)
+            groups = []
+            for group, count in counts.items():
+                entry = {
+                    "group": str(group),
+                    "count": int(count),
+                    "share": float(count / len(data)),
+                }
+                if has_target:
+                    mask = data[attr] == group
+                    entry["positive_rate"] = float(
+                        (data.loc[mask, self.config.target_column]
+                         == self.config.positive_label).mean()
+                    )
+                groups.append(entry)
+
+            p_value = None
+            if has_target and len(counts) >= 2:
+                try:
+                    from scipy.stats import chi2_contingency
+
+                    contingency = pd.crosstab(
+                        data[attr], data[self.config.target_column]
+                    )
+                    if contingency.shape[0] >= 2 and contingency.shape[1] >= 2:
+                        _, p_value, _, _ = chi2_contingency(contingency)
+                        p_value = float(p_value)
+                except (ImportError, ValueError):
+                    p_value = None
+
+            stats[attr] = {"groups": groups, "chi2_p_value": p_value}
+
+        return stats
+
     def _add_llm_explanations(self, report: AuditReport) -> None:
         """Add LLM explanations to findings."""
         for finding in report.findings:

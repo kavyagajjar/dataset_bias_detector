@@ -25,8 +25,15 @@ def main():
 @click.option(
     "--protected", "-p",
     multiple=True,
-    required=True,
-    help="Protected attribute column names (can specify multiple)",
+    help="Protected attribute column names (can specify multiple). "
+         "Omit and pass --auto to detect them automatically.",
+)
+@click.option(
+    "--auto",
+    is_flag=True,
+    default=False,
+    help="Auto-detect protected attributes, target column, and positive label "
+         "from column names.",
 )
 @click.option(
     "--target", "-t",
@@ -69,6 +76,7 @@ def main():
 def audit(
     data_path: str,
     protected: tuple,
+    auto: bool,
     target: Optional[str],
     positive_label: str,
     output: Optional[str],
@@ -79,12 +87,19 @@ def audit(
 ):
     """
     Audit a dataset for biases.
-    
+
     DATA_PATH: Path to the dataset file (CSV, Parquet, or JSON)
     """
     import pandas as pd
-    
+
     from bias_auditor import BiasAuditor, BiasThresholds
+
+    if not protected and not auto:
+        console.print(
+            "[red]Error:[/red] Specify protected attributes with -p, "
+            "or pass --auto to detect them automatically."
+        )
+        sys.exit(2)
     
     # Load data
     with Progress(
@@ -128,6 +143,7 @@ def audit(
         positive_label=positive_label_parsed,
         thresholds=thresholds,
         llm_provider=llm_provider_value,
+        auto_detect=auto,
         verbose=verbose,
     )
     

@@ -12,8 +12,11 @@ Most fairness tools focus on **models**, not **raw data**. But biases baked into
 ### Key Features
 
 - 🔍 **Statistical Bias Detection**: Representation, label, proxy, and missing data bias
+- 🪄 **Auto-Detection**: Point it at any tabular dataset — protected attributes, target
+  column, and positive label are detected from column names; continuous age is auto-binned
 - 🤖 **LLM-Powered Analysis**: Text column bias detection, natural language explanations
-- 📊 **Rich Reports**: HTML dashboards, JSON exports, CLI summaries
+- 📊 **Rich Reports**: HTML dashboards with embedded interactive charts, per-group
+  breakdown tables with chi-square significance tests, JSON exports, CLI summaries
 - 🛠️ **Actionable Remediation**: Code generation for resampling, reweighting, preprocessing
 - ⚡ **Fast Integration**: Works with pandas DataFrames, CLI, and CI/CD pipelines
 
@@ -81,7 +84,10 @@ code = auditor.generate_remediation_code(report)
 ### Command Line
 
 ```bash
-# Basic audit
+# Zero-config: auto-detect protected attributes, target, and positive label
+bias-auditor audit data.csv --auto -o report.html
+
+# Basic audit with explicit columns
 bias-auditor audit data.csv -p gender -p race -t approved
 
 # Full report with HTML output
@@ -90,6 +96,21 @@ bias-auditor audit data.csv -p gender -t approved -o report.html -f full
 # Quick check (CI/CD friendly)
 bias-auditor quick-check data.csv -p gender -p race
 ```
+
+### Auto-Detection
+
+Don't know (or don't want to type) the sensitive columns? Pass `--auto` on the
+CLI or `auto_detect=True` in Python:
+
+```python
+auditor = BiasAuditor(auto_detect=True)
+report = auditor.audit(df)  # finds gender/race/age/..., bins continuous age,
+                            # guesses the binary target and positive label
+```
+
+Every detection decision is printed and recorded in the report's configuration
+appendix so you can verify it. Supported inputs: CSV, Parquet, JSON (CLI), or
+any pandas DataFrame (Python API).
 
 ## What It Detects
 
@@ -101,6 +122,18 @@ bias-auditor quick-check data.csv -p gender -p race
 | **Missing Data** | Differential missingness, MNAR patterns |
 | **Text Bias** | Stereotypes, sentiment disparities, exclusionary language (LLM) |
 | **Intersectional** | Compound biases across multiple attributes |
+
+## What's in the HTML Report
+
+- **Score dashboard** — overall bias score, counts by severity, per-category bars
+- **Dataset overview** — rows/columns, target distribution, missing-data table
+- **Group breakdown** — per-group counts, shares, and positive-outcome rates for every
+  protected attribute, each with a chi-square test of independence (p-value)
+- **Findings** — critical/warning/info cards with metrics and remediation actions
+- **Interactive charts** — group distributions, label rates with the 80%-rule threshold
+  line, a category radar, and intersectional heatmaps (attr × attr positive rates)
+- **Configuration appendix** — thresholds and columns used (plus auto-detection notes),
+  so every report is reproducible
 
 ## Report Example
 

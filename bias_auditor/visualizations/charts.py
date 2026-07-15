@@ -431,6 +431,86 @@ class BiasVisualizer:
         plt.tight_layout()
         return self._fig_to_base64(fig)
     
+    def intersectional_heatmap(
+        self,
+        data: pd.DataFrame,
+        attr1: str,
+        attr2: str,
+        target_column: str,
+        positive_label: Any = 1,
+        title: Optional[str] = None,
+    ) -> str:
+        """
+        Heatmap of positive-outcome rates for the intersection of two
+        protected attributes (attr1 groups x attr2 groups).
+        """
+        rates = data.pivot_table(
+            index=attr1,
+            columns=attr2,
+            values=target_column,
+            aggfunc=lambda x: (x == positive_label).mean(),
+        )
+        counts = data.pivot_table(
+            index=attr1, columns=attr2, values=target_column, aggfunc="count"
+        )
+
+        title = title or f"Positive Rate: {attr1} × {attr2}"
+
+        if self.backend == "plotly":
+            text = [
+                [
+                    f"{rates.iloc[i, j]:.1%}<br>n={int(counts.iloc[i, j])}"
+                    if pd.notna(rates.iloc[i, j]) else ""
+                    for j in range(rates.shape[1])
+                ]
+                for i in range(rates.shape[0])
+            ]
+            fig = go.Figure(data=go.Heatmap(
+                z=rates.values,
+                x=rates.columns.astype(str),
+                y=rates.index.astype(str),
+                colorscale=[[0, "#dc3545"], [0.5, "#ffc107"], [1, "#28a745"]],
+                zmin=0,
+                zmax=1,
+                text=text,
+                texttemplate="%{text}",
+                textfont={"size": 11},
+                colorbar=dict(title="Positive Rate"),
+            ))
+            fig.update_layout(
+                title=title,
+                xaxis_title=attr2,
+                yaxis_title=attr1,
+                template="plotly_white",
+                height=400,
+            )
+            return fig.to_html(include_plotlyjs="cdn", full_html=False)
+        else:
+            fig, ax = plt.subplots(figsize=(9, 6))
+            from matplotlib.colors import LinearSegmentedColormap
+            cmap = LinearSegmentedColormap.from_list(
+                "rate", ["#dc3545", "#ffc107", "#28a745"]
+            )
+            im = ax.imshow(rates.values, cmap=cmap, vmin=0, vmax=1, aspect="auto")
+            ax.set_xticks(range(rates.shape[1]))
+            ax.set_yticks(range(rates.shape[0]))
+            ax.set_xticklabels(rates.columns.astype(str), rotation=45, ha="right")
+            ax.set_yticklabels(rates.index.astype(str))
+            ax.set_xlabel(attr2)
+            ax.set_ylabel(attr1)
+            for i in range(rates.shape[0]):
+                for j in range(rates.shape[1]):
+                    if pd.notna(rates.iloc[i, j]):
+                        ax.text(
+                            j, i,
+                            f"{rates.iloc[i, j]:.0%}\nn={int(counts.iloc[i, j])}",
+                            ha="center", va="center", fontsize=9,
+                        )
+            plt.colorbar(im, ax=ax, label="Positive Rate")
+            ax.set_title(title)
+            plt.tight_layout()
+            return self._fig_to_base64(fig)
+
     def findings_timeline(
         self,
         findings: list,
@@ -581,12 +661,16 @@ def generate_all_visualizations(
     if category_scores:
         visualizations["category_radar"] = viz.category_scores_radar(category_scores)
     
-    # Heatmap for multiple attributes
-    if len(protected_attrs) >= 2 and target_column:
+    # Intersectional heatmaps for each attribute pair
+    if len(protected_attrs) >= 2 and target_column and target_column in data.columns:
         available_attrs = [a for a in protected_attrs if a in data.columns]
-        if len(available_attrs) >= 2:
-            visualizations["bias_heatmap"] = viz.bias_heatmap(
-                data, available_attrs, target_column, positive_label
-            )
-    
+        for i in range(len(available_attrs)):
+            for j in range(i + 1, len(available_attrs)):
+                attr1, attr2 = available_attrs[i], available_attrs[j]
+                visualizations[f"intersectional_{attr1}_x_{attr2}"] = (
+                    viz.intersectional_heatmap(
+                        data, attr1, attr2, target_column, positive_label
+                    )
+                )
+
     return visualizations

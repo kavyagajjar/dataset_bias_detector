@@ -146,6 +146,7 @@ class AuditConfig:
     llm_config: LLMConfig = field(default_factory=LLMConfig)
     
     # Analysis settings
+    auto_detect: bool = False  # Auto-detect protected attributes/target from column names
     compute_intersectional: bool = True  # Analyze intersections of protected attributes
     max_intersectional_depth: int = 2  # Max number of attributes to combine
     min_group_size: int = 30  # Minimum samples to consider a group
@@ -158,11 +159,12 @@ class AuditConfig:
         """Validate configuration and return list of warnings."""
         warnings = []
         
-        if not self.protected_attributes:
+        if not self.protected_attributes and not self.auto_detect:
             warnings.append("No protected attributes specified. "
-                          "Consider adding attributes like 'gender', 'race', 'age_group'.")
-        
-        if self.target_column is None:
+                          "Consider adding attributes like 'gender', 'race', 'age_group', "
+                          "or enable auto_detect=True.")
+
+        if self.target_column is None and not self.auto_detect:
             warnings.append("No target column specified. "
                           "Label bias detection will be skipped.")
         
@@ -204,6 +206,7 @@ class AuditConfig:
                 "enable_explanations": self.llm_config.enable_explanations,
                 "enable_code_generation": self.llm_config.enable_code_generation,
             },
+            "auto_detect": self.auto_detect,
             "compute_intersectional": self.compute_intersectional,
             "max_intersectional_depth": self.max_intersectional_depth,
             "min_group_size": self.min_group_size,
