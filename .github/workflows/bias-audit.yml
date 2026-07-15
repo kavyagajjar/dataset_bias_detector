@@ -1,0 +1,101 @@
+name: Bias Audit Check
+
+on:
+  workflow_call:
+    inputs:
+      data_path:
+        description: 'Path to the dataset file'
+        required: true
+        type: string
+      protected_attributes:
+        description: 'Comma-separated list of protected attribute columns'
+        required: true
+        type: string
+      target_column:
+        description: 'Target/label column name'
+        required: false
+        type: string
+      fail_on_critical:
+        description: 'Fail workflow if critical bias detected'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  bias-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install bias-auditor
+        run: pip install dataset-bias-auditor
+      
+      - name: Run bias audit
+        id: audit
+        run: |
+          # Parse protected attributes
+          PROTECTED_ARGS=""
+          IFS=',' read -ra ATTRS <<< "${{ inputs.protected_attributes }}"
+          for attr in "${ATTRS[@]}"; do
+            PROTECTED_ARGS="$PROTECTED_ARGS -p $(echo $attr | xargs)"
+          done
+          
+          # Build command
+          CMD="bias-auditor audit ${{ inputs.data_path }} $PROTECTED_ARGS"
+          
+          if [ -n "${{ inputs.target_column }}" ]; then
+            CMD="$CMD -t ${{ inputs.target_column }}"
+          fi
+          
+          CMD="$CMD -o audit_report.html -f full"
+          
+          echo "Running: $CMD"
+          
+          set +e
+          $CMD
+          EXIT_CODE=$?
+          set -e
+          
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+          
+          if [ "${{ inputs.fail_on_critical }}" = "true" ] && [ $EXIT_CODE -ne 0 ]; then
+            echo "::error::Critical bias detected in dataset"
+            exit 1
+          fi
+      
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bias-audit-report
+          path: audit_report.html
+      
+      - name: Add PR comment
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            let status = '${{ steps.audit.outputs.exit_code }}' === '0' ? '✅ PASSED' : '⚠️ CRITICAL BIAS DETECTED';
+            
+            const comment = `## 📊 Dataset Bias Audit Report
+            
+            **Status:** ${status}
+            
+            The bias audit has been completed. Download the detailed HTML report from the workflow artifacts.
+            
+            [View Workflow Run](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID})
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

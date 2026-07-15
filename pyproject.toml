@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataset-bias-auditor"
+version = "0.1.0"
+description = "Detect representation biases, label biases, and fairness issues in datasets before training"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Kavya Gajjar", email = "gajjar.ka96@gmail.com"}
+]
+keywords = ["fairness", "bias", "machine-learning", "data-quality", "auditing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=1.5.0",
+    "numpy>=1.21.0",
+    "scipy>=1.9.0",
+    "scikit-learn>=1.0.0",
+    "matplotlib>=3.5.0",
+    "seaborn>=0.12.0",
+    "plotly>=5.10.0",
+    "rich>=12.0.0",
+    "click>=8.0.0",
+    "jinja2>=3.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+llm = [
+    "openai>=1.0.0",
+    "anthropic>=0.18.0",
+    "litellm>=1.0.0",
+]
+mlops = [
+    "mlflow>=2.0.0",
+    "wandb>=0.15.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+all = [
+    "dataset-bias-auditor[llm,mlops,dev]",
+]
+
+[project.scripts]
+bias-auditor = "bias_auditor.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/dataset-bias-auditor"
+Documentation = "https://github.com/yourusername/dataset-bias-auditor#readme"
+Repository = "https://github.com/yourusername/dataset-bias-auditor"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["bias_auditor*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "D", "UP", "S", "B", "A", "C4", "PT"]
+ignore = ["D100", "D104", "D107"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=bias_auditor --cov-report=term-missing"

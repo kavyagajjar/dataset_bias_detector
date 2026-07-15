@@ -1,0 +1,35 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+
+# Generated audit reports
+*.html
+!docs/**/*.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
