@@ -64,9 +64,9 @@ all = [
 bias-auditor = "bias_auditor.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/dataset-bias-auditor"
-Documentation = "https://github.com/yourusername/dataset-bias-auditor#readme"
-Repository = "https://github.com/yourusername/dataset-bias-auditor"
+Homepage = "https://github.com/kavyagajjar/dataset_bias_detector"
+Documentation = "https://github.com/kavyagajjar/dataset_bias_detector#readme"
+Repository = "https://github.com/kavyagajjar/dataset_bias_detector"
 
 [tool.setuptools.packages.find]
 where = ["."]

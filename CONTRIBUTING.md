@@ -7,8 +7,8 @@ development environment and submit changes.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dataset-bias-auditor.git
-cd dataset-bias-auditor
+git clone https://github.com/kavyagajjar/dataset_bias_detector.git
+cd dataset_bias_detector
 
 # Create a virtual environment
 python -m venv .venv
