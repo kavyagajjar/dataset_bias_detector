@@ -1,6 +1,5 @@
 """HTML report generation."""
 
-
 from bias_auditor.core.report import AuditReport, BiasSeverity
 
 HTML_TEMPLATE = """<!DOCTYPE html>
@@ -539,14 +538,13 @@ def _render_profile_section(report: AuditReport) -> str:
 
     # Missing-rate table (only columns with missing values)
     missing = {
-        col: rate for col, rate in sorted(
-            profile.missing_rates.items(), key=lambda kv: -kv[1]
-        ) if rate > 0
+        col: rate
+        for col, rate in sorted(profile.missing_rates.items(), key=lambda kv: -kv[1])
+        if rate > 0
     }
     if missing:
         missing_rows = "\n".join(
-            f"<tr><td>{col}</td>"
-            f"<td class='num'>{rate:.1%}</td></tr>"
+            f"<tr><td>{col}</td>" f"<td class='num'>{rate:.1%}</td></tr>"
             for col, rate in list(missing.items())[:15]
         )
         missing_html = f"""
@@ -644,7 +642,8 @@ def _render_group_stats_section(report: AuditReport) -> str:
         caption = ""
         if p_value is not None:
             significance = (
-                "statistically significant (p &lt; 0.05)" if p_value < 0.05
+                "statistically significant (p &lt; 0.05)"
+                if p_value < 0.05
                 else "not statistically significant (p &ge; 0.05)"
             )
             caption = (

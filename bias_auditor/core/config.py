@@ -160,17 +160,20 @@ class AuditConfig:
         warnings = []
 
         if not self.protected_attributes and not self.auto_detect:
-            warnings.append("No protected attributes specified. "
-                          "Consider adding attributes like 'gender', 'race', 'age_group', "
-                          "or enable auto_detect=True.")
+            warnings.append(
+                "No protected attributes specified. "
+                "Consider adding attributes like 'gender', 'race', 'age_group', "
+                "or enable auto_detect=True."
+            )
 
         if self.target_column is None and not self.auto_detect:
-            warnings.append("No target column specified. "
-                          "Label bias detection will be skipped.")
+            warnings.append("No target column specified. " "Label bias detection will be skipped.")
 
         if self.llm_config.provider != LLMProvider.NONE and not self.llm_config.api_key:
-            warnings.append(f"LLM provider '{self.llm_config.provider}' selected but no API key provided. "
-                          "Set via api_key or environment variable.")
+            warnings.append(
+                f"LLM provider '{self.llm_config.provider}' selected but no API key provided. "
+                "Set via api_key or environment variable."
+            )
 
         return warnings
 

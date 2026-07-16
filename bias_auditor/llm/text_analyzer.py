@@ -72,9 +72,7 @@ class TextBiasAnalyzer:
                 for attr in protected_attributes:
                     if attr not in data.columns:
                         continue
-                    findings.extend(
-                        self._analyze_column_by_group(data, col, attr, sample_size)
-                    )
+                    findings.extend(self._analyze_column_by_group(data, col, attr, sample_size))
 
         return findings
 
@@ -114,21 +112,32 @@ If you find concerning patterns, describe them specifically with examples."""
             response = self.provider.complete(prompt, TEXT_ANALYST_SYSTEM)
 
             # Parse response for findings
-            if any(word in response.content.lower() for word in
-                   ["stereotype", "bias", "discriminat", "exclusion", "problematic", "concern"]):
-                findings.append(BiasFindings(
-                    category=BiasCategory.TEXT,
-                    severity=BiasSeverity.WARNING,
-                    title=f"Potential text bias in '{column}'",
-                    description="LLM analysis identified potential bias patterns in text content.",
-                    affected_attribute=column,
-                    llm_explanation=response.content,
-                    remediation_suggestions=[
-                        "Review flagged text patterns manually",
-                        "Consider bias-aware text preprocessing",
-                        "Implement content guidelines for text fields",
-                    ],
-                ))
+            if any(
+                word in response.content.lower()
+                for word in [
+                    "stereotype",
+                    "bias",
+                    "discriminat",
+                    "exclusion",
+                    "problematic",
+                    "concern",
+                ]
+            ):
+                findings.append(
+                    BiasFindings(
+                        category=BiasCategory.TEXT,
+                        severity=BiasSeverity.WARNING,
+                        title=f"Potential text bias in '{column}'",
+                        description="LLM analysis identified potential bias patterns in text content.",
+                        affected_attribute=column,
+                        llm_explanation=response.content,
+                        remediation_suggestions=[
+                            "Review flagged text patterns manually",
+                            "Consider bias-aware text preprocessing",
+                            "Implement content guidelines for text fields",
+                        ],
+                    )
+                )
         except Exception:
             # Silently skip on LLM errors
             pass
@@ -177,37 +186,43 @@ If you find concerning patterns, describe them specifically with examples."""
             content_lower = response.content.lower()
             severity = BiasSeverity.INFO
 
-            if any(word in content_lower for word in
-                   ["significant", "clear pattern", "systematic", "discriminat"]):
+            if any(
+                word in content_lower
+                for word in ["significant", "clear pattern", "systematic", "discriminat"]
+            ):
                 severity = BiasSeverity.CRITICAL
-            elif any(word in content_lower for word in
-                     ["pattern", "tendency", "difference", "stereotype", "bias"]):
+            elif any(
+                word in content_lower
+                for word in ["pattern", "tendency", "difference", "stereotype", "bias"]
+            ):
                 severity = BiasSeverity.WARNING
 
             if severity != BiasSeverity.INFO or "no significant" not in content_lower:
-                findings.append(BiasFindings(
-                    category=BiasCategory.TEXT,
-                    severity=severity,
-                    title=f"Text bias analysis: '{column}' by '{protected_attr}'",
-                    description=(
-                        f"LLM analysis of text in '{column}' across "
-                        f"'{protected_attr}' groups identified potential patterns."
-                    ),
-                    affected_attribute=protected_attr,
-                    affected_groups=list(samples_by_group.keys()),
-                    llm_explanation=response.content,
-                    remediation_suggestions=[
-                        "Review identified text patterns with domain experts",
-                        "Consider text standardization or augmentation",
-                        "Implement fairness-aware text preprocessing",
-                        "Add text bias monitoring to model evaluation",
-                    ],
-                    evidence={
-                        "n_samples_per_group": {g: len(s) for g, s in samples_by_group.items()},
-                        "column": column,
-                        "protected_attribute": protected_attr,
-                    },
-                ))
+                findings.append(
+                    BiasFindings(
+                        category=BiasCategory.TEXT,
+                        severity=severity,
+                        title=f"Text bias analysis: '{column}' by '{protected_attr}'",
+                        description=(
+                            f"LLM analysis of text in '{column}' across "
+                            f"'{protected_attr}' groups identified potential patterns."
+                        ),
+                        affected_attribute=protected_attr,
+                        affected_groups=list(samples_by_group.keys()),
+                        llm_explanation=response.content,
+                        remediation_suggestions=[
+                            "Review identified text patterns with domain experts",
+                            "Consider text standardization or augmentation",
+                            "Implement fairness-aware text preprocessing",
+                            "Add text bias monitoring to model evaluation",
+                        ],
+                        evidence={
+                            "n_samples_per_group": {g: len(s) for g, s in samples_by_group.items()},
+                            "column": column,
+                            "protected_attribute": protected_attr,
+                        },
+                    )
+                )
         except Exception:
             pass
 

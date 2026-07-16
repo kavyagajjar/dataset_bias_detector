@@ -111,7 +111,6 @@ def undersample_majority(df, protected_attr):
     return pd.concat(balanced_dfs, ignore_index=True)
 """,
     ),
-
     # Reweighting strategies
     RemediationStrategy(
         strategy_type=StrategyType.REWEIGHTING,
@@ -146,7 +145,6 @@ def equalized_reweighting(df, protected_attr, target_col):
     pass
 """,
     ),
-
     # Preprocessing strategies
     RemediationStrategy(
         strategy_type=StrategyType.PREPROCESSING,
@@ -188,7 +186,6 @@ def impute_by_group(df, protected_attr, columns_to_impute):
     return result
 """,
     ),
-
     # Feature engineering strategies
     RemediationStrategy(
         strategy_type=StrategyType.FEATURE_ENGINEERING,
@@ -217,7 +214,6 @@ def bin_proxy_feature(df, feature, n_bins=5):
     return df.drop(columns=[feature])
 """,
     ),
-
     # Data collection strategies
     RemediationStrategy(
         strategy_type=StrategyType.DATA_COLLECTION,
@@ -228,7 +224,6 @@ def bin_proxy_feature(df, feature, n_bins=5):
         effectiveness="high",
         code_template=None,  # Not automatable
     ),
-
     # Labeling strategies
     RemediationStrategy(
         strategy_type=StrategyType.LABELING,
@@ -265,10 +260,7 @@ def get_remediation_strategies(finding: BiasFindings) -> list[RemediationStrateg
     list[RemediationStrategy]
         Applicable strategies, sorted by effectiveness.
     """
-    applicable = [
-        s for s in STRATEGIES
-        if finding.category in s.applicable_categories
-    ]
+    applicable = [s for s in STRATEGIES if finding.category in s.applicable_categories]
 
     # Sort by effectiveness
     effectiveness_order = {"high": 0, "medium": 1, "low": 2}

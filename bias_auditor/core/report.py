@@ -182,12 +182,12 @@ class AuditReport:
                 category_findings[cat] = []
             category_findings[cat].append(severity_scores[finding.severity])
 
-        self.category_scores = {
-            cat: max(scores) for cat, scores in category_findings.items()
-        }
+        self.category_scores = {cat: max(scores) for cat, scores in category_findings.items()}
 
         # Overall score is the max severity found
-        self.overall_bias_score = max(self.category_scores.values()) if self.category_scores else 0.0
+        self.overall_bias_score = (
+            max(self.category_scores.values()) if self.category_scores else 0.0
+        )
 
     @property
     def critical_findings(self) -> list[BiasFindings]:
@@ -234,8 +234,11 @@ class AuditReport:
         lines.append("")
 
         # Overall score
-        score_label = "LOW" if self.overall_bias_score < 0.3 else \
-                     "MODERATE" if self.overall_bias_score < 0.6 else "HIGH"
+        score_label = (
+            "LOW"
+            if self.overall_bias_score < 0.3
+            else "MODERATE" if self.overall_bias_score < 0.6 else "HIGH"
+        )
         lines.append(f"Overall Bias Score: {self.overall_bias_score:.2f} ({score_label})")
         lines.append("")
 
@@ -244,7 +247,9 @@ class AuditReport:
         lines.append("-" * 40)
         lines.append(f"  Critical: {len(self.critical_findings)}")
         lines.append(f"  Warning:  {len(self.warning_findings)}")
-        lines.append(f"  Info:     {len([f for f in self.findings if f.severity == BiasSeverity.INFO])}")
+        lines.append(
+            f"  Info:     {len([f for f in self.findings if f.severity == BiasSeverity.INFO])}"
+        )
         lines.append("")
 
         # Critical findings detail
@@ -349,6 +354,8 @@ class AuditReport:
         return "\n".join(lines)
 
     def __repr__(self) -> str:
-        return (f"AuditReport(id={self.audit_id}, "
-                f"findings={len(self.findings)}, "
-                f"score={self.overall_bias_score:.2f})")
+        return (
+            f"AuditReport(id={self.audit_id}, "
+            f"findings={len(self.findings)}, "
+            f"score={self.overall_bias_score:.2f})"
+        )

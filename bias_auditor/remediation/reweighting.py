@@ -41,9 +41,7 @@ class ReweightingRemediation:
         n_groups = len(counts)
 
         # Weight = total / (n_groups * count_for_group)
-        weights = data[protected_attr].map(
-            lambda x: total / (n_groups * counts[x])
-        )
+        weights = data[protected_attr].map(lambda x: total / (n_groups * counts[x]))
 
         return weights
 
@@ -73,9 +71,7 @@ class ReweightingRemediation:
         # Each group should contribute equally (1/n_groups of total weight)
         target_weight_per_group = 1.0 / n_groups
 
-        weights = data[protected_attr].map(
-            lambda x: target_weight_per_group / counts[x]
-        )
+        weights = data[protected_attr].map(lambda x: target_weight_per_group / counts[x])
 
         # Normalize so weights sum to number of samples
         weights = weights * len(data)
@@ -171,9 +167,7 @@ class ReweightingRemediation:
         total = len(data)
         n_groups = len(counts)
 
-        weights = intersection.map(
-            lambda x: total / (n_groups * counts[x])
-        )
+        weights = intersection.map(lambda x: total / (n_groups * counts[x]))
 
         return weights
 
@@ -212,9 +206,7 @@ class ReweightingRemediation:
             else:
                 weight_multipliers[group] = 0
 
-        weights = data[protected_attr].map(
-            lambda x: weight_multipliers.get(x, 1.0)
-        )
+        weights = data[protected_attr].map(lambda x: weight_multipliers.get(x, 1.0))
 
         # Normalize
         weights = weights / weights.mean()

@@ -54,7 +54,8 @@ class FeatureProxyDetector:
 
         # Get non-protected feature columns
         feature_columns = [
-            col for col in data.columns
+            col
+            for col in data.columns
             if col not in self.config.protected_attributes
             and col != self.config.target_column
             and col not in self.config.exclude_columns
@@ -77,10 +78,7 @@ class FeatureProxyDetector:
         return findings
 
     def _check_association(
-        self,
-        data: pd.DataFrame,
-        feature: str,
-        protected_attr: str
+        self, data: pd.DataFrame, feature: str, protected_attr: str
     ) -> list[BiasFindings]:
         """Check correlation or association between feature and protected attribute."""
         findings = []
@@ -94,8 +92,8 @@ class FeatureProxyDetector:
         protected_data = data.loc[valid_mask, protected_attr]
 
         # Determine data types and appropriate test
-        feature_is_numeric = feature_data.dtype in ['float64', 'float32', 'int64', 'int32']
-        protected_is_numeric = protected_data.dtype in ['float64', 'float32', 'int64', 'int32']
+        feature_is_numeric = feature_data.dtype in ["float64", "float32", "int64", "int32"]
+        protected_is_numeric = protected_data.dtype in ["float64", "float32", "int64", "int32"]
 
         correlation = None
         p_value = None
@@ -115,23 +113,22 @@ class FeatureProxyDetector:
                     if len(protected_data.unique()) == 2:
                         # Point-biserial
                         correlation, p_value = stats.pointbiserialr(
-                            pd.factorize(protected_data)[0],
-                            feature_data
+                            pd.factorize(protected_data)[0], feature_data
                         )
                         test_type = "point_biserial"
                     else:
                         # ANOVA F-test -> convert to correlation-like measure
                         f_stat, p_value = stats.f_oneway(*groups)
                         # Eta-squared as effect size
-                        ss_between = sum(len(g) * (np.mean(g) - np.mean(feature_data))**2 for g in groups)
-                        ss_total = np.sum((feature_data - np.mean(feature_data))**2)
+                        ss_between = sum(
+                            len(g) * (np.mean(g) - np.mean(feature_data)) ** 2 for g in groups
+                        )
+                        ss_total = np.sum((feature_data - np.mean(feature_data)) ** 2)
                         correlation = np.sqrt(ss_between / ss_total) if ss_total > 0 else 0
                         test_type = "eta"
             else:
                 # Chi-squared test for categorical variables
-                chi_result = chi_squared_test(
-                    data.loc[valid_mask], feature, protected_attr
-                )
+                chi_result = chi_squared_test(data.loc[valid_mask], feature, protected_attr)
                 correlation = chi_result["cramers_v"]
                 p_value = chi_result["p_value"]
                 test_type = "cramers_v"
@@ -144,70 +141,71 @@ class FeatureProxyDetector:
         abs_corr = abs(correlation)
 
         if abs_corr > self.thresholds.proxy_correlation_critical:
-            findings.append(BiasFindings(
-                category=BiasCategory.FEATURE_PROXY,
-                severity=BiasSeverity.CRITICAL,
-                title=f"Strong proxy detected: '{feature}' for '{protected_attr}'",
-                description=(
-                    f"Feature '{feature}' has a strong association with protected "
-                    f"attribute '{protected_attr}' ({test_type}={correlation:.3f}). "
-                    f"Using this feature may indirectly discriminate based on "
-                    f"'{protected_attr}' even if the protected attribute is removed."
-                ),
-                affected_attribute=protected_attr,
-                affected_groups=[feature],
-                metrics={
-                    "correlation": correlation,
-                    "abs_correlation": abs_corr,
-                    "p_value": p_value,
-                    "test_type": test_type,
-                    "threshold": self.thresholds.proxy_correlation_critical,
-                },
-                remediation_suggestions=[
-                    f"Consider removing '{feature}' from training features",
-                    "Apply fairness-aware feature selection",
-                    f"Transform '{feature}' to reduce correlation with '{protected_attr}'",
-                    "Use adversarial debiasing during training",
-                    "Apply disparate impact remover preprocessing",
-                ],
-                evidence={
-                    "n_samples": int(valid_mask.sum()),
-                },
-            ))
+            findings.append(
+                BiasFindings(
+                    category=BiasCategory.FEATURE_PROXY,
+                    severity=BiasSeverity.CRITICAL,
+                    title=f"Strong proxy detected: '{feature}' for '{protected_attr}'",
+                    description=(
+                        f"Feature '{feature}' has a strong association with protected "
+                        f"attribute '{protected_attr}' ({test_type}={correlation:.3f}). "
+                        f"Using this feature may indirectly discriminate based on "
+                        f"'{protected_attr}' even if the protected attribute is removed."
+                    ),
+                    affected_attribute=protected_attr,
+                    affected_groups=[feature],
+                    metrics={
+                        "correlation": correlation,
+                        "abs_correlation": abs_corr,
+                        "p_value": p_value,
+                        "test_type": test_type,
+                        "threshold": self.thresholds.proxy_correlation_critical,
+                    },
+                    remediation_suggestions=[
+                        f"Consider removing '{feature}' from training features",
+                        "Apply fairness-aware feature selection",
+                        f"Transform '{feature}' to reduce correlation with '{protected_attr}'",
+                        "Use adversarial debiasing during training",
+                        "Apply disparate impact remover preprocessing",
+                    ],
+                    evidence={
+                        "n_samples": int(valid_mask.sum()),
+                    },
+                )
+            )
         elif abs_corr > self.thresholds.proxy_correlation_warning:
-            findings.append(BiasFindings(
-                category=BiasCategory.FEATURE_PROXY,
-                severity=BiasSeverity.WARNING,
-                title=f"Moderate proxy detected: '{feature}' for '{protected_attr}'",
-                description=(
-                    f"Feature '{feature}' has moderate association with "
-                    f"'{protected_attr}' ({test_type}={correlation:.3f}). "
-                    f"This could introduce indirect discrimination."
-                ),
-                affected_attribute=protected_attr,
-                affected_groups=[feature],
-                metrics={
-                    "correlation": correlation,
-                    "abs_correlation": abs_corr,
-                    "p_value": p_value,
-                    "test_type": test_type,
-                },
-                remediation_suggestions=[
-                    "Monitor model decisions related to this feature",
-                    "Consider fairness testing with and without this feature",
-                ],
-                evidence={
-                    "n_samples": int(valid_mask.sum()),
-                },
-            ))
+            findings.append(
+                BiasFindings(
+                    category=BiasCategory.FEATURE_PROXY,
+                    severity=BiasSeverity.WARNING,
+                    title=f"Moderate proxy detected: '{feature}' for '{protected_attr}'",
+                    description=(
+                        f"Feature '{feature}' has moderate association with "
+                        f"'{protected_attr}' ({test_type}={correlation:.3f}). "
+                        f"This could introduce indirect discrimination."
+                    ),
+                    affected_attribute=protected_attr,
+                    affected_groups=[feature],
+                    metrics={
+                        "correlation": correlation,
+                        "abs_correlation": abs_corr,
+                        "p_value": p_value,
+                        "test_type": test_type,
+                    },
+                    remediation_suggestions=[
+                        "Monitor model decisions related to this feature",
+                        "Consider fairness testing with and without this feature",
+                    ],
+                    evidence={
+                        "n_samples": int(valid_mask.sum()),
+                    },
+                )
+            )
 
         return findings
 
     def _check_mutual_information(
-        self,
-        data: pd.DataFrame,
-        feature: str,
-        protected_attr: str
+        self, data: pd.DataFrame, feature: str, protected_attr: str
     ) -> list[BiasFindings]:
         """Check mutual information between feature and protected attribute."""
         findings = []
@@ -218,53 +216,54 @@ class FeatureProxyDetector:
             return findings
 
         if mi > self.thresholds.proxy_mutual_info_critical:
-            findings.append(BiasFindings(
-                category=BiasCategory.FEATURE_PROXY,
-                severity=BiasSeverity.CRITICAL,
-                title=f"High mutual information: '{feature}' ↔ '{protected_attr}'",
-                description=(
-                    f"Feature '{feature}' shares significant information with "
-                    f"protected attribute '{protected_attr}' (MI={mi:.3f}). "
-                    f"This feature can effectively predict group membership."
-                ),
-                affected_attribute=protected_attr,
-                affected_groups=[feature],
-                metrics={
-                    "mutual_information": mi,
-                    "threshold": self.thresholds.proxy_mutual_info_critical,
-                },
-                remediation_suggestions=[
-                    f"Evaluate necessity of '{feature}' for prediction task",
-                    "Use mutual information-based feature selection",
-                    "Consider privacy-preserving transformations",
-                ],
-            ))
+            findings.append(
+                BiasFindings(
+                    category=BiasCategory.FEATURE_PROXY,
+                    severity=BiasSeverity.CRITICAL,
+                    title=f"High mutual information: '{feature}' ↔ '{protected_attr}'",
+                    description=(
+                        f"Feature '{feature}' shares significant information with "
+                        f"protected attribute '{protected_attr}' (MI={mi:.3f}). "
+                        f"This feature can effectively predict group membership."
+                    ),
+                    affected_attribute=protected_attr,
+                    affected_groups=[feature],
+                    metrics={
+                        "mutual_information": mi,
+                        "threshold": self.thresholds.proxy_mutual_info_critical,
+                    },
+                    remediation_suggestions=[
+                        f"Evaluate necessity of '{feature}' for prediction task",
+                        "Use mutual information-based feature selection",
+                        "Consider privacy-preserving transformations",
+                    ],
+                )
+            )
         elif mi > self.thresholds.proxy_mutual_info_warning:
-            findings.append(BiasFindings(
-                category=BiasCategory.FEATURE_PROXY,
-                severity=BiasSeverity.INFO,
-                title=f"Elevated mutual information: '{feature}' ↔ '{protected_attr}'",
-                description=(
-                    f"Feature '{feature}' has elevated mutual information with "
-                    f"'{protected_attr}' (MI={mi:.3f})."
-                ),
-                affected_attribute=protected_attr,
-                affected_groups=[feature],
-                metrics={
-                    "mutual_information": mi,
-                },
-                remediation_suggestions=[
-                    "Monitor for fairness implications",
-                ],
-            ))
+            findings.append(
+                BiasFindings(
+                    category=BiasCategory.FEATURE_PROXY,
+                    severity=BiasSeverity.INFO,
+                    title=f"Elevated mutual information: '{feature}' ↔ '{protected_attr}'",
+                    description=(
+                        f"Feature '{feature}' has elevated mutual information with "
+                        f"'{protected_attr}' (MI={mi:.3f})."
+                    ),
+                    affected_attribute=protected_attr,
+                    affected_groups=[feature],
+                    metrics={
+                        "mutual_information": mi,
+                    },
+                    remediation_suggestions=[
+                        "Monitor for fairness implications",
+                    ],
+                )
+            )
 
         return findings
 
     def _check_known_patterns(
-        self,
-        data: pd.DataFrame,
-        protected_attr: str,
-        feature_columns: list[str]
+        self, data: pd.DataFrame, protected_attr: str, feature_columns: list[str]
     ) -> list[BiasFindings]:
         """Check for known proxy patterns in feature names."""
         findings = []
@@ -282,24 +281,28 @@ class FeatureProxyDetector:
                             mi = None
 
                         if mi is not None and mi > 0.1:
-                            findings.append(BiasFindings(
-                                category=BiasCategory.FEATURE_PROXY,
-                                severity=BiasSeverity.WARNING,
-                                title=f"Known proxy pattern: '{feature}'",
-                                description=(
-                                    f"Feature '{feature}' matches known proxy pattern "
-                                    f"'{category}' and has association with '{protected_attr}' "
-                                    f"(MI={mi:.3f}). {self._get_proxy_explanation(category)}"
-                                ),
-                                affected_attribute=protected_attr,
-                                affected_groups=[feature],
-                                metrics={
-                                    "mutual_information": mi,
-                                    "pattern_category": category,
-                                    "matched_pattern": pattern,
-                                },
-                                remediation_suggestions=self._get_proxy_remediation(category, feature),
-                            ))
+                            findings.append(
+                                BiasFindings(
+                                    category=BiasCategory.FEATURE_PROXY,
+                                    severity=BiasSeverity.WARNING,
+                                    title=f"Known proxy pattern: '{feature}'",
+                                    description=(
+                                        f"Feature '{feature}' matches known proxy pattern "
+                                        f"'{category}' and has association with '{protected_attr}' "
+                                        f"(MI={mi:.3f}). {self._get_proxy_explanation(category)}"
+                                    ),
+                                    affected_attribute=protected_attr,
+                                    affected_groups=[feature],
+                                    metrics={
+                                        "mutual_information": mi,
+                                        "pattern_category": category,
+                                        "matched_pattern": pattern,
+                                    },
+                                    remediation_suggestions=self._get_proxy_remediation(
+                                        category, feature
+                                    ),
+                                )
+                            )
                         break
 
         return findings
@@ -311,9 +314,7 @@ class FeatureProxyDetector:
                 "Location data often correlates with race/ethnicity due to "
                 "historical segregation patterns."
             ),
-            "name": (
-                "Names can indicate gender, ethnicity, or national origin."
-            ),
+            "name": ("Names can indicate gender, ethnicity, or national origin."),
             "education": (
                 "Educational institutions may correlate with socioeconomic "
                 "status and race due to systemic inequalities."

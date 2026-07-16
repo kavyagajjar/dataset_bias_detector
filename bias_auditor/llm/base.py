@@ -105,18 +105,22 @@ def get_llm_provider(config: LLMConfig) -> Optional[BaseLLMProvider]:
 
     if config.provider == LLMProvider.OPENAI:
         from bias_auditor.llm.providers.openai import OpenAIProvider
+
         return OpenAIProvider(config)
 
     if config.provider == LLMProvider.ANTHROPIC:
         from bias_auditor.llm.providers.anthropic import AnthropicProvider
+
         return AnthropicProvider(config)
 
     if config.provider == LLMProvider.AZURE:
         from bias_auditor.llm.providers.openai import AzureOpenAIProvider
+
         return AzureOpenAIProvider(config)
 
     if config.provider == LLMProvider.LOCAL:
         from bias_auditor.llm.providers.local import LocalProvider
+
         return LocalProvider(config)
 
     raise ValueError(f"Unknown LLM provider: {config.provider}")

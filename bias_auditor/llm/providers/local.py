@@ -12,9 +12,7 @@ class LocalProvider(BaseLLMProvider):
 
     def __init__(self, config: LLMConfig):
         super().__init__(config)
-        self.api_base = config.api_base or os.environ.get(
-            "OLLAMA_HOST", "http://localhost:11434"
-        )
+        self.api_base = config.api_base or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
         self._client = None
 
         # Default to a capable local model
@@ -27,6 +25,7 @@ class LocalProvider(BaseLLMProvider):
         if self._client is None:
             try:
                 import litellm
+
                 self._client = litellm
                 # Configure for Ollama
                 litellm.api_base = self.api_base
@@ -96,9 +95,7 @@ class OllamaProvider(BaseLLMProvider):
 
     def __init__(self, config: LLMConfig):
         super().__init__(config)
-        self.api_base = config.api_base or os.environ.get(
-            "OLLAMA_HOST", "http://localhost:11434"
-        )
+        self.api_base = config.api_base or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 
         if not self.model or self.model == "gpt-4o":
             self.model = "llama3.1:8b"
@@ -107,6 +104,7 @@ class OllamaProvider(BaseLLMProvider):
         """Check if Ollama is running."""
         try:
             import requests
+
             response = requests.get(f"{self.api_base}/api/tags", timeout=5)
             return response.status_code == 200
         except Exception:

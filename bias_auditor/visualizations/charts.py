@@ -10,6 +10,7 @@ import pandas as pd
 try:
     import matplotlib.patches as mpatches  # noqa: F401
     import matplotlib.pyplot as plt
+
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -18,6 +19,7 @@ try:
     import plotly.express as px  # noqa: F401
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
+
     HAS_PLOTLY = True
 except ImportError:
     HAS_PLOTLY = False
@@ -79,25 +81,29 @@ class BiasVisualizer:
         fig = go.Figure()
 
         # Observed distribution
-        fig.add_trace(go.Bar(
-            name="Observed",
-            x=counts.index.astype(str),
-            y=counts.values / counts.sum(),
-            marker_color="#667eea",
-            text=[f"{v/counts.sum():.1%}" for v in counts.values],
-            textposition="outside",
-        ))
+        fig.add_trace(
+            go.Bar(
+                name="Observed",
+                x=counts.index.astype(str),
+                y=counts.values / counts.sum(),
+                marker_color="#667eea",
+                text=[f"{v/counts.sum():.1%}" for v in counts.values],
+                textposition="outside",
+            )
+        )
 
         # Reference distribution if provided
         if reference_dist:
             ref_values = [reference_dist.get(str(k), 0) for k in counts.index]
-            fig.add_trace(go.Bar(
-                name="Reference",
-                x=counts.index.astype(str),
-                y=ref_values,
-                marker_color="#764ba2",
-                opacity=0.6,
-            ))
+            fig.add_trace(
+                go.Bar(
+                    name="Reference",
+                    x=counts.index.astype(str),
+                    y=ref_values,
+                    marker_color="#764ba2",
+                    opacity=0.6,
+                )
+            )
 
         fig.update_layout(
             title=title or f"Distribution of {protected_attr}",
@@ -126,16 +132,18 @@ class BiasVisualizer:
         width = 0.35
 
         # Observed distribution
-        bars1 = ax.bar(x - width/2 if reference_dist else x,
-                       counts.values / counts.sum(),
-                       width if reference_dist else 0.6,
-                       label="Observed", color="#667eea")
+        bars1 = ax.bar(
+            x - width / 2 if reference_dist else x,
+            counts.values / counts.sum(),
+            width if reference_dist else 0.6,
+            label="Observed",
+            color="#667eea",
+        )
 
         # Reference distribution if provided
         if reference_dist:
             ref_values = [reference_dist.get(str(k), 0) for k in counts.index]
-            ax.bar(x + width/2, ref_values, width,
-                          label="Reference", color="#764ba2", alpha=0.6)
+            ax.bar(x + width / 2, ref_values, width, label="Reference", color="#764ba2", alpha=0.6)
 
         ax.set_xlabel(protected_attr)
         ax.set_ylabel("Proportion")
@@ -149,10 +157,15 @@ class BiasVisualizer:
         # Add value labels
         for bar in bars1:
             height = bar.get_height()
-            ax.annotate(f"{height:.1%}",
-                       xy=(bar.get_x() + bar.get_width() / 2, height),
-                       xytext=(0, 3), textcoords="offset points",
-                       ha="center", va="bottom", fontsize=9)
+            ax.annotate(
+                f"{height:.1%}",
+                xy=(bar.get_x() + bar.get_width() / 2, height),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
 
         plt.tight_layout()
         return self._fig_to_base64(fig)
@@ -167,9 +180,13 @@ class BiasVisualizer:
     ) -> str:
         """Plot positive label rates by group."""
         if self.backend == "plotly":
-            return self._label_rates_plotly(data, protected_attr, target_column, positive_label, title)
+            return self._label_rates_plotly(
+                data, protected_attr, target_column, positive_label, title
+            )
         else:
-            return self._label_rates_matplotlib(data, protected_attr, target_column, positive_label, title)
+            return self._label_rates_matplotlib(
+                data, protected_attr, target_column, positive_label, title
+            )
 
     def _label_rates_plotly(
         self,
@@ -180,22 +197,28 @@ class BiasVisualizer:
         title: Optional[str],
     ) -> str:
         """Generate label rates chart with plotly."""
-        rates = data.groupby(protected_attr)[target_column].apply(
-            lambda x: (x == positive_label).mean()
-        ).sort_values(ascending=False)
+        rates = (
+            data.groupby(protected_attr)[target_column]
+            .apply(lambda x: (x == positive_label).mean())
+            .sort_values(ascending=False)
+        )
 
         # Color by rate (red for low, green for high)
-        colors = ["#dc3545" if r < 0.3 else "#ffc107" if r < 0.6 else "#28a745" for r in rates.values]
+        colors = [
+            "#dc3545" if r < 0.3 else "#ffc107" if r < 0.6 else "#28a745" for r in rates.values
+        ]
 
         fig = go.Figure()
 
-        fig.add_trace(go.Bar(
-            x=rates.index.astype(str),
-            y=rates.values,
-            marker_color=colors,
-            text=[f"{v:.1%}" for v in rates.values],
-            textposition="outside",
-        ))
+        fig.add_trace(
+            go.Bar(
+                x=rates.index.astype(str),
+                y=rates.values,
+                marker_color=colors,
+                text=[f"{v:.1%}" for v in rates.values],
+                textposition="outside",
+            )
+        )
 
         # Add 80% threshold line
         overall_rate = (data[target_column] == positive_label).mean()
@@ -226,20 +249,28 @@ class BiasVisualizer:
         title: Optional[str],
     ) -> str:
         """Generate label rates chart with matplotlib."""
-        rates = data.groupby(protected_attr)[target_column].apply(
-            lambda x: (x == positive_label).mean()
-        ).sort_values(ascending=False)
+        rates = (
+            data.groupby(protected_attr)[target_column]
+            .apply(lambda x: (x == positive_label).mean())
+            .sort_values(ascending=False)
+        )
 
         fig, ax = plt.subplots(figsize=(10, 6))
 
-        colors = ["#dc3545" if r < 0.3 else "#ffc107" if r < 0.6 else "#28a745" for r in rates.values]
+        colors = [
+            "#dc3545" if r < 0.3 else "#ffc107" if r < 0.6 else "#28a745" for r in rates.values
+        ]
 
         bars = ax.bar(range(len(rates)), rates.values, color=colors)
 
         # 80% rule line
         overall_rate = (data[target_column] == positive_label).mean()
-        ax.axhline(y=overall_rate * 0.8, color="red", linestyle="--",
-                   label=f"80% Rule ({overall_rate * 0.8:.1%})")
+        ax.axhline(
+            y=overall_rate * 0.8,
+            color="red",
+            linestyle="--",
+            label=f"80% Rule ({overall_rate * 0.8:.1%})",
+        )
 
         ax.set_xlabel(protected_attr)
         ax.set_ylabel("Positive Rate")
@@ -250,10 +281,15 @@ class BiasVisualizer:
         ax.legend()
 
         for bar, rate in zip(bars, rates.values):
-            ax.annotate(f"{rate:.1%}",
-                       xy=(bar.get_x() + bar.get_width() / 2, rate),
-                       xytext=(0, 3), textcoords="offset points",
-                       ha="center", va="bottom", fontsize=9)
+            ax.annotate(
+                f"{rate:.1%}",
+                xy=(bar.get_x() + bar.get_width() / 2, rate),
+                xytext=(0, 3),
+                textcoords="offset points",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+            )
 
         plt.tight_layout()
         return self._fig_to_base64(fig)
@@ -280,14 +316,16 @@ class BiasVisualizer:
 
         fig = go.Figure()
 
-        fig.add_trace(go.Scatterpolar(
-            r=values_closed,
-            theta=[c.replace("_", " ").title() for c in categories_closed],
-            fill="toself",
-            fillcolor="rgba(102, 126, 234, 0.3)",
-            line=dict(color="#667eea", width=2),
-            name="Bias Score",
-        ))
+        fig.add_trace(
+            go.Scatterpolar(
+                r=values_closed,
+                theta=[c.replace("_", " ").title() for c in categories_closed],
+                fill="toself",
+                fillcolor="rgba(102, 126, 234, 0.3)",
+                line=dict(color="#667eea", width=2),
+                name="Bias Score",
+            )
+        )
 
         fig.update_layout(
             title=title or "Bias by Category",
@@ -317,7 +355,7 @@ class BiasVisualizer:
 
         fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(polar=True))
 
-        ax.plot(angles, values, 'o-', linewidth=2, color="#667eea")
+        ax.plot(angles, values, "o-", linewidth=2, color="#667eea")
         ax.fill(angles, values, alpha=0.3, color="#667eea")
 
         ax.set_xticks(angles[:-1])
@@ -343,7 +381,9 @@ class BiasVisualizer:
         if self.backend == "plotly":
             return self._heatmap_plotly(data, protected_attrs, target_column, positive_label, title)
         else:
-            return self._heatmap_matplotlib(data, protected_attrs, target_column, positive_label, title)
+            return self._heatmap_matplotlib(
+                data, protected_attrs, target_column, positive_label, title
+            )
 
     def _heatmap_plotly(
         self,
@@ -359,25 +399,25 @@ class BiasVisualizer:
         matrix = np.zeros((n, n))
 
         for i, attr in enumerate(protected_attrs):
-            rates = data.groupby(attr)[target_column].apply(
-                lambda x: (x == positive_label).mean()
-            )
+            rates = data.groupby(attr)[target_column].apply(lambda x: (x == positive_label).mean())
             if len(rates) >= 2:
                 dir_val = rates.min() / rates.max() if rates.max() > 0 else 1
                 matrix[i, i] = dir_val
 
-        fig = go.Figure(data=go.Heatmap(
-            z=matrix,
-            x=[a.replace("_", " ").title() for a in protected_attrs],
-            y=[a.replace("_", " ").title() for a in protected_attrs],
-            colorscale=[[0, "#dc3545"], [0.5, "#ffc107"], [1, "#28a745"]],
-            zmin=0,
-            zmax=1,
-            text=[[f"{v:.2f}" for v in row] for row in matrix],
-            texttemplate="%{text}",
-            textfont={"size": 12},
-            colorbar=dict(title="DIR"),
-        ))
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=matrix,
+                x=[a.replace("_", " ").title() for a in protected_attrs],
+                y=[a.replace("_", " ").title() for a in protected_attrs],
+                colorscale=[[0, "#dc3545"], [0.5, "#ffc107"], [1, "#28a745"]],
+                zmin=0,
+                zmax=1,
+                text=[[f"{v:.2f}" for v in row] for row in matrix],
+                texttemplate="%{text}",
+                textfont={"size": 12},
+                colorbar=dict(title="DIR"),
+            )
+        )
 
         fig.update_layout(
             title=title or "Disparate Impact Ratio by Attribute",
@@ -400,9 +440,7 @@ class BiasVisualizer:
         matrix = np.zeros((n, n))
 
         for i, attr in enumerate(protected_attrs):
-            rates = data.groupby(attr)[target_column].apply(
-                lambda x: (x == positive_label).mean()
-            )
+            rates = data.groupby(attr)[target_column].apply(lambda x: (x == positive_label).mean())
             if len(rates) >= 2:
                 dir_val = rates.min() / rates.max() if rates.max() > 0 else 1
                 matrix[i, i] = dir_val
@@ -410,6 +448,7 @@ class BiasVisualizer:
         fig, ax = plt.subplots(figsize=(8, 8))
 
         from matplotlib.colors import LinearSegmentedColormap
+
         colors = ["#dc3545", "#ffc107", "#28a745"]
         cmap = LinearSegmentedColormap.from_list("bias", colors)
 
@@ -417,7 +456,9 @@ class BiasVisualizer:
 
         ax.set_xticks(range(n))
         ax.set_yticks(range(n))
-        ax.set_xticklabels([a.replace("_", " ").title() for a in protected_attrs], rotation=45, ha="right")
+        ax.set_xticklabels(
+            [a.replace("_", " ").title() for a in protected_attrs], rotation=45, ha="right"
+        )
         ax.set_yticklabels([a.replace("_", " ").title() for a in protected_attrs])
 
         # Add text annotations
@@ -450,33 +491,36 @@ class BiasVisualizer:
             values=target_column,
             aggfunc=lambda x: (x == positive_label).mean(),
         )
-        counts = data.pivot_table(
-            index=attr1, columns=attr2, values=target_column, aggfunc="count"
-        )
+        counts = data.pivot_table(index=attr1, columns=attr2, values=target_column, aggfunc="count")
 
         title = title or f"Positive Rate: {attr1} × {attr2}"
 
         if self.backend == "plotly":
             text = [
                 [
-                    f"{rates.iloc[i, j]:.1%}<br>n={int(counts.iloc[i, j])}"
-                    if pd.notna(rates.iloc[i, j]) else ""
+                    (
+                        f"{rates.iloc[i, j]:.1%}<br>n={int(counts.iloc[i, j])}"
+                        if pd.notna(rates.iloc[i, j])
+                        else ""
+                    )
                     for j in range(rates.shape[1])
                 ]
                 for i in range(rates.shape[0])
             ]
-            fig = go.Figure(data=go.Heatmap(
-                z=rates.values,
-                x=rates.columns.astype(str),
-                y=rates.index.astype(str),
-                colorscale=[[0, "#dc3545"], [0.5, "#ffc107"], [1, "#28a745"]],
-                zmin=0,
-                zmax=1,
-                text=text,
-                texttemplate="%{text}",
-                textfont={"size": 11},
-                colorbar=dict(title="Positive Rate"),
-            ))
+            fig = go.Figure(
+                data=go.Heatmap(
+                    z=rates.values,
+                    x=rates.columns.astype(str),
+                    y=rates.index.astype(str),
+                    colorscale=[[0, "#dc3545"], [0.5, "#ffc107"], [1, "#28a745"]],
+                    zmin=0,
+                    zmax=1,
+                    text=text,
+                    texttemplate="%{text}",
+                    textfont={"size": 11},
+                    colorbar=dict(title="Positive Rate"),
+                )
+            )
             fig.update_layout(
                 title=title,
                 xaxis_title=attr2,
@@ -488,9 +532,8 @@ class BiasVisualizer:
         else:
             fig, ax = plt.subplots(figsize=(9, 6))
             from matplotlib.colors import LinearSegmentedColormap
-            cmap = LinearSegmentedColormap.from_list(
-                "rate", ["#dc3545", "#ffc107", "#28a745"]
-            )
+
+            cmap = LinearSegmentedColormap.from_list("rate", ["#dc3545", "#ffc107", "#28a745"])
             im = ax.imshow(rates.values, cmap=cmap, vmin=0, vmax=1, aspect="auto")
             ax.set_xticks(range(rates.shape[1]))
             ax.set_yticks(range(rates.shape[0]))
@@ -502,9 +545,12 @@ class BiasVisualizer:
                 for j in range(rates.shape[1]):
                     if pd.notna(rates.iloc[i, j]):
                         ax.text(
-                            j, i,
+                            j,
+                            i,
                             f"{rates.iloc[i, j]:.0%}\nn={int(counts.iloc[i, j])}",
-                            ha="center", va="center", fontsize=9,
+                            ha="center",
+                            va="center",
+                            fontsize=9,
                         )
             plt.colorbar(im, ax=ax, label="Positive Rate")
             ax.set_title(title)
@@ -533,14 +579,20 @@ class BiasVisualizer:
             fig = make_subplots(rows=1, cols=2, subplot_titles=("By Severity", "By Category"))
 
             # Severity chart
-            colors_sev = {"critical": "#dc3545", "warning": "#ffc107", "info": "#17a2b8", "none": "#28a745"}
+            colors_sev = {
+                "critical": "#dc3545",
+                "warning": "#ffc107",
+                "info": "#17a2b8",
+                "none": "#28a745",
+            }
             fig.add_trace(
                 go.Bar(
                     x=list(severity_counts.keys()),
                     y=list(severity_counts.values()),
                     marker_color=[colors_sev.get(k, "#666") for k in severity_counts.keys()],
                 ),
-                row=1, col=1
+                row=1,
+                col=1,
             )
 
             # Category chart
@@ -550,7 +602,8 @@ class BiasVisualizer:
                     y=list(category_counts.values()),
                     marker_color="#667eea",
                 ),
-                row=1, col=2
+                row=1,
+                col=2,
             )
 
             fig.update_layout(
@@ -564,11 +617,16 @@ class BiasVisualizer:
         else:
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-            colors_sev = {"critical": "#dc3545", "warning": "#ffc107", "info": "#17a2b8", "none": "#28a745"}
+            colors_sev = {
+                "critical": "#dc3545",
+                "warning": "#ffc107",
+                "info": "#17a2b8",
+                "none": "#28a745",
+            }
             ax1.bar(
                 severity_counts.keys(),
                 severity_counts.values(),
-                color=[colors_sev.get(k, "#666") for k in severity_counts.keys()]
+                color=[colors_sev.get(k, "#666") for k in severity_counts.keys()],
             )
             ax1.set_title("By Severity")
             ax1.set_ylabel("Count")
@@ -576,7 +634,7 @@ class BiasVisualizer:
             ax2.bar(
                 [c.replace("_", " ").title() for c in category_counts.keys()],
                 category_counts.values(),
-                color="#667eea"
+                color="#667eea",
             )
             ax2.set_title("By Category")
             ax2.tick_params(axis="x", rotation=45)
@@ -596,22 +654,14 @@ class BiasVisualizer:
 
 
 # Convenience functions
-def plot_group_distribution(
-    data: pd.DataFrame,
-    protected_attr: str,
-    **kwargs
-) -> str:
+def plot_group_distribution(data: pd.DataFrame, protected_attr: str, **kwargs) -> str:
     """Plot distribution of protected attribute groups."""
     viz = BiasVisualizer()
     return viz.group_distribution(data, protected_attr, **kwargs)
 
 
 def plot_label_rates(
-    data: pd.DataFrame,
-    protected_attr: str,
-    target_column: str,
-    positive_label: Any = 1,
-    **kwargs
+    data: pd.DataFrame, protected_attr: str, target_column: str, positive_label: Any = 1, **kwargs
 ) -> str:
     """Plot positive label rates by group."""
     viz = BiasVisualizer()
@@ -667,10 +717,8 @@ def generate_all_visualizations(
         for i in range(len(available_attrs)):
             for j in range(i + 1, len(available_attrs)):
                 attr1, attr2 = available_attrs[i], available_attrs[j]
-                visualizations[f"intersectional_{attr1}_x_{attr2}"] = (
-                    viz.intersectional_heatmap(
-                        data, attr1, attr2, target_column, positive_label
-                    )
+                visualizations[f"intersectional_{attr1}_x_{attr2}"] = viz.intersectional_heatmap(
+                    data, attr1, attr2, target_column, positive_label
                 )
 
     return visualizations

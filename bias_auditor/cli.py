@@ -23,20 +23,22 @@ def main():
 @main.command()
 @click.argument("data_path", type=click.Path(exists=True))
 @click.option(
-    "--protected", "-p",
+    "--protected",
+    "-p",
     multiple=True,
     help="Protected attribute column names (can specify multiple). "
-         "Omit and pass --auto to detect them automatically.",
+    "Omit and pass --auto to detect them automatically.",
 )
 @click.option(
     "--auto",
     is_flag=True,
     default=False,
     help="Auto-detect protected attributes, target column, and positive label "
-         "from column names.",
+    "from column names.",
 )
 @click.option(
-    "--target", "-t",
+    "--target",
+    "-t",
     default=None,
     help="Target/label column name",
 )
@@ -46,12 +48,14 @@ def main():
     help="Value representing positive outcome",
 )
 @click.option(
-    "--output", "-o",
+    "--output",
+    "-o",
     default=None,
     help="Output file path (.html or .json)",
 )
 @click.option(
-    "--format", "-f",
+    "--format",
+    "-f",
     type=click.Choice(["summary", "full", "json"]),
     default="summary",
     help="Output format",
@@ -69,7 +73,8 @@ def main():
     help="Disparate impact critical threshold",
 )
 @click.option(
-    "--verbose/--quiet", "-v/-q",
+    "--verbose/--quiet",
+    "-v/-q",
     default=True,
     help="Verbose output",
 )
@@ -192,13 +197,15 @@ def audit(
 @main.command()
 @click.argument("data_path", type=click.Path(exists=True))
 @click.option(
-    "--protected", "-p",
+    "--protected",
+    "-p",
     multiple=True,
     required=True,
     help="Protected attribute column names",
 )
 @click.option(
-    "--target", "-t",
+    "--target",
+    "-t",
     default=None,
     help="Target/label column name",
 )
@@ -257,17 +264,22 @@ def _print_summary(report):
     """Print a formatted summary of the audit report."""
 
     # Header panel
-    score_color = "green" if report.overall_bias_score < 0.3 else \
-                  "yellow" if report.overall_bias_score < 0.6 else "red"
+    score_color = (
+        "green"
+        if report.overall_bias_score < 0.3
+        else "yellow" if report.overall_bias_score < 0.6 else "red"
+    )
 
-    console.print(Panel(
-        f"[bold]Bias Score:[/bold] [{score_color}]{report.overall_bias_score:.0%}[/{score_color}]\n"
-        f"[bold]Critical:[/bold] [red]{len(report.critical_findings)}[/red]  "
-        f"[bold]Warnings:[/bold] [yellow]{len(report.warning_findings)}[/yellow]  "
-        f"[bold]Total:[/bold] {len(report.findings)}",
-        title="Audit Summary",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Bias Score:[/bold] [{score_color}]{report.overall_bias_score:.0%}[/{score_color}]\n"
+            f"[bold]Critical:[/bold] [red]{len(report.critical_findings)}[/red]  "
+            f"[bold]Warnings:[/bold] [yellow]{len(report.warning_findings)}[/yellow]  "
+            f"[bold]Total:[/bold] {len(report.findings)}",
+            title="Audit Summary",
+            border_style="blue",
+        )
+    )
 
     # Category scores
     if report.category_scores:

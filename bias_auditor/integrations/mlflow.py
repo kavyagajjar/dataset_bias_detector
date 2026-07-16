@@ -42,11 +42,10 @@ class MLflowIntegration:
         """
         try:
             import mlflow
+
             self._mlflow = mlflow
         except ImportError:
-            raise ImportError(
-                "mlflow not installed. Install with: pip install mlflow"
-            ) from None
+            raise ImportError("mlflow not installed. Install with: pip install mlflow") from None
 
         if tracking_uri:
             self._mlflow.set_tracking_uri(tracking_uri)
@@ -110,8 +109,9 @@ class MLflowIntegration:
         # Log parameters
         self._mlflow.log_param("audit_id", report.audit_id)
         self._mlflow.log_param("dataset_name", report.dataset_name or "unknown")
-        self._mlflow.log_param("n_protected_attributes",
-                               len(report.config_summary.get("protected_attributes", [])))
+        self._mlflow.log_param(
+            "n_protected_attributes", len(report.config_summary.get("protected_attributes", []))
+        )
 
         # Log metrics
         self._mlflow.log_metric("bias_score", report.overall_bias_score)

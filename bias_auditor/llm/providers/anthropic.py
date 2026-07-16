@@ -25,6 +25,7 @@ class AnthropicProvider(BaseLLMProvider):
         if self._client is None:
             try:
                 from anthropic import Anthropic
+
                 self._client = Anthropic(api_key=self.api_key)
             except ImportError:
                 raise ImportError(
@@ -38,6 +39,7 @@ class AnthropicProvider(BaseLLMProvider):
             return False
         try:
             from anthropic import Anthropic  # noqa: F401
+
             return True
         except ImportError:
             return False

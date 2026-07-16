@@ -19,14 +19,16 @@ def loan_data():
     """A realistic loan dataset with detectable columns."""
     rng = np.random.default_rng(42)
     n = 300
-    return pd.DataFrame({
-        "applicant_id": range(n),
-        "gender": rng.choice(["male", "female"], n),
-        "race": rng.choice(["white", "black", "asian"], n),
-        "age": rng.integers(18, 80, n),
-        "income": rng.integers(20000, 150000, n),
-        "approved": rng.choice([0, 1], n),
-    })
+    return pd.DataFrame(
+        {
+            "applicant_id": range(n),
+            "gender": rng.choice(["male", "female"], n),
+            "race": rng.choice(["white", "black", "asian"], n),
+            "age": rng.integers(18, 80, n),
+            "income": rng.integers(20000, 150000, n),
+            "approved": rng.choice([0, 1], n),
+        }
+    )
 
 
 class TestDetectProtectedAttributes:
@@ -42,12 +44,14 @@ class TestDetectProtectedAttributes:
         assert "applicant_id" not in matches
 
     def test_detects_variants(self):
-        df = pd.DataFrame({
-            "applicant_sex": ["m", "f"],
-            "ethnicity": ["a", "b"],
-            "zip_code": ["10001", "10002"],
-            "marital_status": ["single", "married"],
-        })
+        df = pd.DataFrame(
+            {
+                "applicant_sex": ["m", "f"],
+                "ethnicity": ["a", "b"],
+                "zip_code": ["10001", "10002"],
+                "marital_status": ["single", "married"],
+            }
+        )
         matches = detect_protected_attributes(df)
         assert len(matches) == 4
 
@@ -61,10 +65,12 @@ class TestDetectTargetColumn:
         assert detect_target_column(df) is None
 
     def test_priority_order(self):
-        df = pd.DataFrame({
-            "approved": [0, 1, 0, 1],
-            "label": [0, 1, 1, 0],
-        })
+        df = pd.DataFrame(
+            {
+                "approved": [0, 1, 0, 1],
+                "label": [0, 1, 1, 0],
+            }
+        )
         # 'label' comes before 'approved' in the candidate list
         assert detect_target_column(df) == "label"
 
@@ -89,8 +95,10 @@ class TestInferPositiveLabel:
         assert result == "approved"
 
     def test_boolean(self):
-        assert infer_positive_label(pd.Series([True, False, True])) is np.True_ or \
-            infer_positive_label(pd.Series([True, False, True])) == True  # noqa: E712
+        assert (
+            infer_positive_label(pd.Series([True, False, True])) is np.True_
+            or infer_positive_label(pd.Series([True, False, True])) == True
+        )  # noqa: E712
 
 
 class TestBinContinuous:

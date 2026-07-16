@@ -45,11 +45,10 @@ class WandbIntegration:
         """
         try:
             import wandb
+
             self._wandb = wandb
         except ImportError:
-            raise ImportError(
-                "wandb not installed. Install with: pip install wandb"
-            ) from None
+            raise ImportError("wandb not installed. Install with: pip install wandb") from None
 
         self.project = project or "bias-auditor"
         self.entity = entity
@@ -117,12 +116,14 @@ class WandbIntegration:
             self._wandb.summary[f"bias_{category}"] = score
 
         # Log metrics over time (if running multiple audits)
-        self._wandb.log({
-            "bias_score": report.overall_bias_score,
-            "critical_findings": len(report.critical_findings),
-            "warning_findings": len(report.warning_findings),
-            **{f"bias_{k}": v for k, v in report.category_scores.items()}
-        })
+        self._wandb.log(
+            {
+                "bias_score": report.overall_bias_score,
+                "critical_findings": len(report.critical_findings),
+                "warning_findings": len(report.warning_findings),
+                **{f"bias_{k}": v for k, v in report.category_scores.items()},
+            }
+        )
 
         # Create findings table
         if report.findings:
@@ -140,16 +141,18 @@ class WandbIntegration:
             self._wandb.log({"findings": findings_table})
 
         # Log category scores as bar chart
-        category_data = [[cat.replace("_", " ").title(), score]
-                        for cat, score in report.category_scores.items()]
+        category_data = [
+            [cat.replace("_", " ").title(), score] for cat, score in report.category_scores.items()
+        ]
         if category_data:
             table = self._wandb.Table(data=category_data, columns=["Category", "Score"])
-            self._wandb.log({
-                "category_scores": self._wandb.plot.bar(
-                    table, "Category", "Score",
-                    title="Bias Score by Category"
-                )
-            })
+            self._wandb.log(
+                {
+                    "category_scores": self._wandb.plot.bar(
+                        table, "Category", "Score", title="Bias Score by Category"
+                    )
+                }
+            )
 
         # Log artifacts
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -200,11 +203,13 @@ class WandbIntegration:
         if self._wandb.run is None:
             raise RuntimeError("No active W&B run. Call wandb.init() first.")
 
-        self._wandb.log({
-            f"{prefix}bias_score": report.overall_bias_score,
-            f"{prefix}critical_findings": len(report.critical_findings),
-            **{f"{prefix}bias_{k}": v for k, v in report.category_scores.items()}
-        })
+        self._wandb.log(
+            {
+                f"{prefix}bias_score": report.overall_bias_score,
+                f"{prefix}critical_findings": len(report.critical_findings),
+                **{f"{prefix}bias_{k}": v for k, v in report.category_scores.items()},
+            }
+        )
 
         self._wandb.summary[f"{prefix}has_critical_bias"] = report.has_critical_bias
 
@@ -229,9 +234,9 @@ class WandbIntegration:
                 "description": f"Audit {report.audit_id} - Score: {report.overall_bias_score:.2f}",
                 "metrics": [
                     "bias_score",
-                    *[f"bias_{cat}" for cat in report.category_scores.keys()]
+                    *[f"bias_{cat}" for cat in report.category_scores.keys()],
                 ],
-            }
+            },
         }
 
     def log_comparison(

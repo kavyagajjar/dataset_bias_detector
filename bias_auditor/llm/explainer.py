@@ -90,15 +90,17 @@ class BiasExplainer:
 
         # Format category scores
         scores_str = "\n".join(
-            f"- {cat}: {score:.2f}"
-            for cat, score in report.category_scores.items()
+            f"- {cat}: {score:.2f}" for cat, score in report.category_scores.items()
         )
 
         # Format critical findings
-        critical_str = "\n".join(
-            f"- [{f.category.value}] {f.title}: {f.description[:200]}"
-            for f in report.critical_findings[:5]
-        ) or "None"
+        critical_str = (
+            "\n".join(
+                f"- [{f.category.value}] {f.title}: {f.description[:200]}"
+                for f in report.critical_findings[:5]
+            )
+            or "None"
+        )
 
         prompt = EXECUTIVE_SUMMARY_TEMPLATE.format(
             dataset_name=report.dataset_name or "Unknown Dataset",

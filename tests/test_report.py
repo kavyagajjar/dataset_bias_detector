@@ -50,26 +50,30 @@ def sample_report(sample_finding):
 
     report.add_finding(sample_finding)
 
-    report.add_finding(BiasFindings(
-        category=BiasCategory.LABEL,
-        severity=BiasSeverity.WARNING,
-        title="Moderate disparate impact",
-        description="The positive rate ratio is 0.75.",
-        affected_attribute="gender",
-        affected_groups=["male", "female"],
-        metrics={"disparate_impact_ratio": 0.75},
-        remediation_suggestions=["Review labeling criteria"],
-    ))
+    report.add_finding(
+        BiasFindings(
+            category=BiasCategory.LABEL,
+            severity=BiasSeverity.WARNING,
+            title="Moderate disparate impact",
+            description="The positive rate ratio is 0.75.",
+            affected_attribute="gender",
+            affected_groups=["male", "female"],
+            metrics={"disparate_impact_ratio": 0.75},
+            remediation_suggestions=["Review labeling criteria"],
+        )
+    )
 
-    report.add_finding(BiasFindings(
-        category=BiasCategory.MISSING_DATA,
-        severity=BiasSeverity.INFO,
-        title="Some missing data",
-        description="5% missing values in income column.",
-        affected_attribute="income",
-        metrics={"missing_rate": 0.05},
-        remediation_suggestions=["Consider imputation"],
-    ))
+    report.add_finding(
+        BiasFindings(
+            category=BiasCategory.MISSING_DATA,
+            severity=BiasSeverity.INFO,
+            title="Some missing data",
+            description="5% missing values in income column.",
+            affected_attribute="income",
+            metrics={"missing_rate": 0.05},
+            remediation_suggestions=["Consider imputation"],
+        )
+    )
 
     return report
 
@@ -81,11 +85,11 @@ class TestBiasFindings:
         """Finding should convert to dictionary."""
         d = sample_finding.to_dict()
 
-        assert d['category'] == 'representation'
-        assert d['severity'] == 'critical'
-        assert d['title'] == "Severe underrepresentation"
-        assert 'metrics' in d
-        assert 'remediation_suggestions' in d
+        assert d["category"] == "representation"
+        assert d["severity"] == "critical"
+        assert d["title"] == "Severe underrepresentation"
+        assert "metrics" in d
+        assert "remediation_suggestions" in d
 
     def test_from_dict(self, sample_finding):
         """Finding should be reconstructible from dict."""
@@ -134,13 +138,15 @@ class TestAuditReport:
             audit_id="clean",
             audit_timestamp=datetime.now(),
         )
-        clean_report.add_finding(BiasFindings(
-            category=BiasCategory.MISSING_DATA,
-            severity=BiasSeverity.INFO,
-            title="Minor issue",
-            description="Minor description",
-            affected_attribute="test",
-        ))
+        clean_report.add_finding(
+            BiasFindings(
+                category=BiasCategory.MISSING_DATA,
+                severity=BiasSeverity.INFO,
+                title="Minor issue",
+                description="Minor description",
+                affected_attribute="test",
+            )
+        )
 
         assert clean_report.has_critical_bias is False
 
@@ -174,16 +180,16 @@ class TestAuditReport:
         # Should be valid JSON
         parsed = json.loads(json_str)
 
-        assert parsed['audit_id'] == 'test123'
-        assert len(parsed['findings']) == 3
+        assert parsed["audit_id"] == "test123"
+        assert len(parsed["findings"]) == 3
 
     def test_to_dict(self, sample_report):
         """Should convert to dictionary."""
         d = sample_report.to_dict()
 
         assert isinstance(d, dict)
-        assert 'findings' in d
-        assert 'overall_bias_score' in d
+        assert "findings" in d
+        assert "overall_bias_score" in d
 
 
 class TestHTMLGenerator:
@@ -234,14 +240,14 @@ class TestJSONExport:
         d = export_dict(sample_report)
 
         assert isinstance(d, dict)
-        assert 'audit_id' in d
+        assert "audit_id" in d
 
     def test_export_json_string(self, sample_report):
         """Should export as JSON string."""
         json_str = export_json(sample_report)
 
         parsed = json.loads(json_str)
-        assert parsed['audit_id'] == 'test123'
+        assert parsed["audit_id"] == "test123"
 
     def test_export_json_to_file(self, sample_report):
         """Should save JSON to file."""
@@ -254,7 +260,7 @@ class TestJSONExport:
             assert os.path.exists(path)
             with open(path) as f:
                 parsed = json.load(f)
-            assert parsed['audit_id'] == 'test123'
+            assert parsed["audit_id"] == "test123"
         finally:
             os.unlink(path)
 
@@ -267,18 +273,16 @@ class TestDatasetProfile:
         profile = DatasetProfile(
             n_rows=1000,
             n_columns=10,
-            column_types={'gender': 'object', 'age': 'int64'},
-            protected_attribute_distributions={
-                'gender': {'male': 0.6, 'female': 0.4}
-            },
-            missing_rates={'income': 0.05},
+            column_types={"gender": "object", "age": "int64"},
+            protected_attribute_distributions={"gender": {"male": 0.6, "female": 0.4}},
+            missing_rates={"income": 0.05},
         )
 
         d = profile.to_dict()
 
-        assert d['n_rows'] == 1000
-        assert 'gender' in d['column_types']
-        assert 'gender' in d['protected_attribute_distributions']
+        assert d["n_rows"] == 1000
+        assert "gender" in d["column_types"]
+        assert "gender" in d["protected_attribute_distributions"]
 
 
 class TestEnhancedReportSections:
@@ -288,28 +292,26 @@ class TestEnhancedReportSections:
         sample_report.profile = DatasetProfile(
             n_rows=500,
             n_columns=6,
-            column_types={'gender': 'object', 'approved': 'int64'},
-            protected_attribute_distributions={
-                'gender': {'male': 0.7, 'female': 0.3}
-            },
-            target_distribution={'1': 0.65, '0': 0.35},
-            missing_rates={'income': 0.08, 'gender': 0.0},
+            column_types={"gender": "object", "approved": "int64"},
+            protected_attribute_distributions={"gender": {"male": 0.7, "female": 0.3}},
+            target_distribution={"1": 0.65, "0": 0.35},
+            missing_rates={"income": 0.08, "gender": 0.0},
         )
         sample_report.group_stats = {
-            'gender': {
-                'groups': [
-                    {'group': 'male', 'count': 350, 'share': 0.7, 'positive_rate': 0.72},
-                    {'group': 'female', 'count': 150, 'share': 0.3, 'positive_rate': 0.49},
+            "gender": {
+                "groups": [
+                    {"group": "male", "count": 350, "share": 0.7, "positive_rate": 0.72},
+                    {"group": "female", "count": 150, "share": 0.3, "positive_rate": 0.49},
                 ],
-                'chi2_p_value': 0.0000012,
+                "chi2_p_value": 0.0000012,
             }
         }
         sample_report.visualizations = {
-            'distribution_gender': '<div class="plotly-graph-div">chart</div>',
+            "distribution_gender": '<div class="plotly-graph-div">chart</div>',
         }
         sample_report.config_summary = {
-            'protected_attributes': ['gender'],
-            'target_column': 'approved',
+            "protected_attributes": ["gender"],
+            "target_column": "approved",
         }
         return sample_report
 
@@ -345,8 +347,8 @@ class TestEnhancedReportSections:
 
     def test_auto_detection_notes_rendered(self, sample_report):
         report = self._report_with_details(sample_report)
-        report.config_summary['auto_detection'] = {
-            'notes': ["Detected protected attribute 'gender' (gender)."]
+        report.config_summary["auto_detection"] = {
+            "notes": ["Detected protected attribute 'gender' (gender)."]
         }
         html = generate_html_report(report)
         assert "Auto-detection was used" in html

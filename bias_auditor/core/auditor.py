@@ -122,6 +122,7 @@ class BiasAuditor:
         """Lazy load representation bias detector."""
         if self._representation_detector is None:
             from bias_auditor.detectors.representation import RepresentationDetector
+
             self._representation_detector = RepresentationDetector(self.config)
         return self._representation_detector
 
@@ -130,6 +131,7 @@ class BiasAuditor:
         """Lazy load label bias detector."""
         if self._label_bias_detector is None:
             from bias_auditor.detectors.label_bias import LabelBiasDetector
+
             self._label_bias_detector = LabelBiasDetector(self.config)
         return self._label_bias_detector
 
@@ -138,6 +140,7 @@ class BiasAuditor:
         """Lazy load feature proxy detector."""
         if self._feature_proxy_detector is None:
             from bias_auditor.detectors.feature_proxy import FeatureProxyDetector
+
             self._feature_proxy_detector = FeatureProxyDetector(self.config)
         return self._feature_proxy_detector
 
@@ -146,6 +149,7 @@ class BiasAuditor:
         """Lazy load missing data bias detector."""
         if self._missing_data_detector is None:
             from bias_auditor.detectors.missing_data import MissingDataDetector
+
             self._missing_data_detector = MissingDataDetector(self.config)
         return self._missing_data_detector
 
@@ -154,6 +158,7 @@ class BiasAuditor:
         """Lazy load text analyzer (requires LLM)."""
         if self._text_analyzer is None and self.config.llm_config.provider != LLMProvider.NONE:
             from bias_auditor.llm.text_analyzer import TextBiasAnalyzer
+
             self._text_analyzer = TextBiasAnalyzer(self.config.llm_config)
         return self._text_analyzer
 
@@ -162,6 +167,7 @@ class BiasAuditor:
         """Lazy load LLM explainer."""
         if self._llm_explainer is None and self.config.llm_config.provider != LLMProvider.NONE:
             from bias_auditor.llm.explainer import BiasExplainer
+
             self._llm_explainer = BiasExplainer(self.config.llm_config)
         return self._llm_explainer
 
@@ -273,9 +279,11 @@ class BiasAuditor:
                 report.add_finding(finding)
 
         # Text analysis (requires LLM)
-        if ("text" not in skip_detectors and
-            self.text_analyzer is not None and
-            self.config.text_columns):
+        if (
+            "text" not in skip_detectors
+            and self.text_analyzer is not None
+            and self.config.text_columns
+        ):
             if self.config.verbose:
                 print("   → Analyzing text columns for bias...")
             findings = self.text_analyzer.analyze(data, self.config.text_columns)
@@ -366,9 +374,11 @@ class BiasAuditor:
                 if attr not in data.columns:
                     continue
 
-                label_rates = data.groupby(attr)[self.config.target_column].apply(
-                    lambda x: (x == self.config.positive_label).mean()
-                ).to_dict()
+                label_rates = (
+                    data.groupby(attr)[self.config.target_column]
+                    .apply(lambda x: (x == self.config.positive_label).mean())
+                    .to_dict()
+                )
 
                 if label_rates:
                     max_rate = max(label_rates.values())
@@ -392,8 +402,7 @@ class BiasAuditor:
 
         # Check protected attributes exist
         missing_attrs = [
-            attr for attr in self.config.protected_attributes
-            if attr not in data.columns
+            attr for attr in self.config.protected_attributes if attr not in data.columns
         ]
         if missing_attrs:
             raise ValueError(f"Protected attributes not found in data: {missing_attrs}")
@@ -440,8 +449,7 @@ class BiasAuditor:
         """
         stats: dict[str, dict] = {}
         has_target = (
-            self.config.target_column is not None
-            and self.config.target_column in data.columns
+            self.config.target_column is not None and self.config.target_column in data.columns
         )
 
         for attr in self.config.protected_attributes:
@@ -459,8 +467,9 @@ class BiasAuditor:
                 if has_target:
                     mask = data[attr] == group
                     entry["positive_rate"] = float(
-                        (data.loc[mask, self.config.target_column]
-                         == self.config.positive_label).mean()
+                        (
+                            data.loc[mask, self.config.target_column] == self.config.positive_label
+                        ).mean()
                     )
                 groups.append(entry)
 
@@ -469,9 +478,7 @@ class BiasAuditor:
                 try:
                     from scipy.stats import chi2_contingency
 
-                    contingency = pd.crosstab(
-                        data[attr], data[self.config.target_column]
-                    )
+                    contingency = pd.crosstab(data[attr], data[self.config.target_column])
                     if contingency.shape[0] >= 2 and contingency.shape[1] >= 2:
                         _, p_value, _, _ = chi2_contingency(contingency)
                         p_value = float(p_value)
@@ -596,7 +603,9 @@ class BiasAuditor:
         try:
             from bias_auditor.visualizations import generate_all_visualizations
         except ImportError:
-            return {"error": "Visualization dependencies not installed. pip install matplotlib plotly"}
+            return {
+                "error": "Visualization dependencies not installed. pip install matplotlib plotly"
+            }
 
         category_scores = report.category_scores if report else None
 
@@ -609,6 +618,8 @@ class BiasAuditor:
         )
 
     def __repr__(self) -> str:
-        return (f"BiasAuditor(protected_attributes={self.config.protected_attributes}, "
-                f"target_column={self.config.target_column}, "
-                f"llm_provider={self.config.llm_config.provider.value})")
+        return (
+            f"BiasAuditor(protected_attributes={self.config.protected_attributes}, "
+            f"target_column={self.config.target_column}, "
+            f"llm_provider={self.config.llm_config.provider.value})"
+        )

@@ -31,18 +31,51 @@ PROTECTED_PATTERNS: dict[str, str] = {
 
 # Common names for a supervised-learning target column, in priority order.
 TARGET_NAME_CANDIDATES: list[str] = [
-    "target", "label", "outcome", "y",
-    "approved", "approval", "hired", "admitted", "accepted", "granted",
-    "promoted", "selected", "satisfied", "converted", "retained",
-    "purchased", "subscribed", "success",
-    "default", "churn", "fraud", "readmitted", "recidivism",
-    "loan_status", "credit_risk", "decision", "result", "class",
+    "target",
+    "label",
+    "outcome",
+    "y",
+    "approved",
+    "approval",
+    "hired",
+    "admitted",
+    "accepted",
+    "granted",
+    "promoted",
+    "selected",
+    "satisfied",
+    "converted",
+    "retained",
+    "purchased",
+    "subscribed",
+    "success",
+    "default",
+    "churn",
+    "fraud",
+    "readmitted",
+    "recidivism",
+    "loan_status",
+    "credit_risk",
+    "decision",
+    "result",
+    "class",
 ]
 
 # Values that typically represent the favorable/positive outcome.
 POSITIVE_VALUE_HINTS: list[str] = [
-    "1", "true", "yes", "y", "approved", "hired", "admitted", "accepted",
-    "granted", "positive", "good", "pass", "paid",
+    "1",
+    "true",
+    "yes",
+    "y",
+    "approved",
+    "hired",
+    "admitted",
+    "accepted",
+    "granted",
+    "positive",
+    "good",
+    "pass",
+    "paid",
 ]
 
 # Bins used when a continuous age column is detected.
@@ -206,9 +239,7 @@ def auto_detect(
     if target_column:
         result.target_column = target_column
     else:
-        result.target_column = detect_target_column(
-            data, exclude=result.protected_attributes
-        )
+        result.target_column = detect_target_column(data, exclude=result.protected_attributes)
         if result.target_column:
             result.notes.append(f"Detected target column '{result.target_column}'.")
         else:

@@ -71,11 +71,7 @@ class ResamplingRemediation:
             else:
                 # Oversample with replacement
                 if len(group_df) < target_size:
-                    indices = np.random.choice(
-                        group_df.index,
-                        size=target_size,
-                        replace=True
-                    )
+                    indices = np.random.choice(group_df.index, size=target_size, replace=True)
                     resampled_dfs.append(data.loc[indices])
                 else:
                     resampled_dfs.append(group_df)
@@ -113,8 +109,7 @@ class ResamplingRemediation:
         majority_size = counts.max()
 
         sampling_strategy = {
-            group: max(int(majority_size * target_ratio), count)
-            for group, count in counts.items()
+            group: max(int(majority_size * target_ratio), count) for group, count in counts.items()
         }
 
         smote = SMOTE(
@@ -169,11 +164,7 @@ class ResamplingRemediation:
             group_df = data[data[protected_attr] == group]
 
             if len(group_df) > min_size:
-                indices = np.random.choice(
-                    group_df.index,
-                    size=min_size,
-                    replace=False
-                )
+                indices = np.random.choice(group_df.index, size=min_size, replace=False)
                 resampled_dfs.append(data.loc[indices])
             else:
                 resampled_dfs.append(group_df)
@@ -264,19 +255,11 @@ class ResamplingRemediation:
                 resampled_dfs.append(group_df)
             elif current_size < target_size:
                 # Oversample
-                indices = np.random.choice(
-                    group_df.index,
-                    size=target_size,
-                    replace=True
-                )
+                indices = np.random.choice(group_df.index, size=target_size, replace=True)
                 resampled_dfs.append(data.loc[indices])
             else:
                 # Undersample
-                indices = np.random.choice(
-                    group_df.index,
-                    size=target_size,
-                    replace=False
-                )
+                indices = np.random.choice(group_df.index, size=target_size, replace=False)
                 resampled_dfs.append(data.loc[indices])
 
         result = pd.concat(resampled_dfs, ignore_index=True)

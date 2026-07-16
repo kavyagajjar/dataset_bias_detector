@@ -21,6 +21,7 @@ class OpenAIProvider(BaseLLMProvider):
         if self._client is None:
             try:
                 from openai import OpenAI
+
                 self._client = OpenAI(api_key=self.api_key)
             except ImportError:
                 raise ImportError(
@@ -34,6 +35,7 @@ class OpenAIProvider(BaseLLMProvider):
             return False
         try:
             from openai import OpenAI  # noqa: F401
+
             return True
         except ImportError:
             return False
@@ -95,6 +97,7 @@ class AzureOpenAIProvider(BaseLLMProvider):
         if self._client is None:
             try:
                 from openai import AzureOpenAI
+
                 self._client = AzureOpenAI(
                     api_key=self.api_key,
                     api_version=self.api_version,
@@ -112,6 +115,7 @@ class AzureOpenAIProvider(BaseLLMProvider):
             return False
         try:
             from openai import AzureOpenAI  # noqa: F401
+
             return True
         except ImportError:
             return False

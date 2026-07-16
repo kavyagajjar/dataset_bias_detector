@@ -112,8 +112,7 @@ def disparate_impact_ratio(
         Dictionary with DIR value and group details.
     """
     spd_result = statistical_parity_difference(
-        data, protected_attr, target_column, positive_label,
-        privileged_group, unprivileged_group
+        data, protected_attr, target_column, positive_label, privileged_group, unprivileged_group
     )
 
     priv_rate = spd_result["privileged_rate"]
@@ -121,7 +120,7 @@ def disparate_impact_ratio(
 
     # Avoid division by zero
     if priv_rate == 0:
-        dir_value = float('inf') if unpriv_rate > 0 else 1.0
+        dir_value = float("inf") if unpriv_rate > 0 else 1.0
     else:
         dir_value = unpriv_rate / priv_rate
 
@@ -453,10 +452,7 @@ def equalized_odds_difference(
 
     results["tpr_difference"] = max(tprs) - min(tprs) if tprs else 0
     results["fpr_difference"] = max(fprs) - min(fprs) if fprs else 0
-    results["equalized_odds_difference"] = max(
-        results["tpr_difference"],
-        results["fpr_difference"]
-    )
+    results["equalized_odds_difference"] = max(results["tpr_difference"], results["fpr_difference"])
 
     return results
 
@@ -542,7 +538,7 @@ def mutual_information(
         return 0.0
 
     # Discretize continuous features
-    if feature_data.dtype in ['float64', 'float32', 'int64', 'int32']:
+    if feature_data.dtype in ["float64", "float32", "int64", "int32"]:
         try:
             feature_data = pd.cut(feature_data, bins=n_bins, labels=False)
         except Exception:
