@@ -4,6 +4,8 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Release](https://img.shields.io/github/v/release/kavyagajjar/dataset_bias_detector)](https://github.com/kavyagajjar/dataset_bias_detector/releases/latest)
+[![CI](https://github.com/kavyagajjar/dataset_bias_detector/actions/workflows/ci.yml/badge.svg)](https://github.com/kavyagajjar/dataset_bias_detector/actions/workflows/ci.yml)
 
 ## Why This Tool?
 
@@ -293,10 +295,13 @@ teaches Claude (Claude Code, claude.ai, or the desktop app) to run bias audits
 with this tool — point Claude at any tabular dataset and ask "check this for
 bias". To install it:
 
+- **claude.ai / desktop**: download
+  [`dataset-bias-audit.skill`](https://github.com/kavyagajjar/dataset_bias_detector/releases/download/v0.1.0/dataset-bias-audit.skill)
+  from the [latest release](https://github.com/kavyagajjar/dataset_bias_detector/releases/latest)
+  and upload it under **Settings → Capabilities** (requires a plan with code
+  execution enabled).
 - **Claude Code**: copy `skills/dataset-bias-audit/` into `~/.claude/skills/`
-  (or your project's `.claude/skills/`).
-- **claude.ai / desktop**: package it as a `.skill` file (zip the
-  `dataset-bias-audit` folder) and upload it under Settings → Capabilities.
+  (or your project's `.claude/skills/`) — or unzip the `.skill` file there.
 
 The skill installs this package automatically (from a bundled wheel or from
 this repo) and follows a verified workflow: inspect the data, run the audit
