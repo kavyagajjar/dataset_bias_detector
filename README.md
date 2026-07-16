@@ -23,7 +23,10 @@ Most fairness tools focus on **models**, not **raw data**. But biases baked into
 ## Installation
 
 ```bash
-# Basic installation
+# From GitHub
+pip install git+https://github.com/kavyagajjar/dataset_bias_detector.git
+
+# From a local checkout
 pip install -e .
 
 # With LLM support
@@ -197,11 +200,11 @@ The CLI returns exit code 1 if critical bias is detected:
 # GitHub Actions example
 - name: Bias Audit
   run: |
-    pip install dataset-bias-auditor
+    pip install git+https://github.com/kavyagajjar/dataset_bias_detector.git
     bias-auditor audit data/training.csv -p gender -p race -t label -o bias_report.html
-    
+
 - name: Upload Report
-  uses: actions/upload-artifact@v3
+  uses: actions/upload-artifact@v4
   with:
     name: bias-report
     path: bias_report.html
@@ -257,6 +260,7 @@ class BiasAuditor:
         llm_provider: str = None,
         llm_model: str = None,
         llm_api_key: str = None,
+        auto_detect: bool = False,
         verbose: bool = True,
     ): ...
     
