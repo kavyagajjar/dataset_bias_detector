@@ -1,6 +1,5 @@
 """JSON export utilities."""
 
-import json
 from typing import Any
 
 from bias_auditor.core.report import AuditReport
@@ -9,12 +8,12 @@ from bias_auditor.core.report import AuditReport
 def export_dict(report: AuditReport) -> dict[str, Any]:
     """
     Export audit report as a dictionary.
-    
+
     Parameters
     ----------
     report : AuditReport
         The audit report.
-    
+
     Returns
     -------
     dict
@@ -30,7 +29,7 @@ def export_json(
 ) -> str:
     """
     Export audit report as JSON.
-    
+
     Parameters
     ----------
     report : AuditReport
@@ -39,16 +38,16 @@ def export_json(
         If provided, write JSON to this file.
     indent : int
         JSON indentation level.
-    
+
     Returns
     -------
     str
         JSON string.
     """
     json_str = report.to_json(indent=indent)
-    
+
     if output_path:
         with open(output_path, "w") as f:
             f.write(json_str)
-    
+
     return json_str

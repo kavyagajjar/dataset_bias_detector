@@ -2,11 +2,11 @@
 
 from bias_auditor.visualizations.charts import (
     BiasVisualizer,
-    plot_group_distribution,
-    plot_label_rates,
+    generate_all_visualizations,
     plot_category_scores,
     plot_fairness_radar,
-    generate_all_visualizations,
+    plot_group_distribution,
+    plot_label_rates,
 )
 
 __all__ = [

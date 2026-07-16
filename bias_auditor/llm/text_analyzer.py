@@ -1,32 +1,33 @@
 """Text bias analyzer using LLM."""
 
-from typing import Any, Optional
+from typing import Optional
+
 import pandas as pd
 
 from bias_auditor.core.config import LLMConfig
-from bias_auditor.core.report import BiasFindings, BiasSeverity, BiasCategory
+from bias_auditor.core.report import BiasCategory, BiasFindings, BiasSeverity
 from bias_auditor.llm.base import get_llm_provider
-from bias_auditor.llm.prompts import TEXT_ANALYST_SYSTEM, TEXT_ANALYSIS_TEMPLATE
+from bias_auditor.llm.prompts import TEXT_ANALYSIS_TEMPLATE, TEXT_ANALYST_SYSTEM
 
 
 class TextBiasAnalyzer:
     """
     Analyzer for bias in text columns using LLM.
-    
+
     Detects:
     - Stereotyping language
     - Sentiment disparities across groups
     - Exclusionary terminology
     - Gendered or culturally biased language
     """
-    
+
     def __init__(self, config: LLMConfig):
         self.config = config
         self.provider = get_llm_provider(config)
-        
+
         if self.provider is None:
             raise ValueError("LLM provider is required for text analysis")
-    
+
     def analyze(
         self,
         data: pd.DataFrame,
@@ -36,7 +37,7 @@ class TextBiasAnalyzer:
     ) -> list[BiasFindings]:
         """
         Analyze text columns for bias.
-        
+
         Parameters
         ----------
         data : pd.DataFrame
@@ -47,17 +48,17 @@ class TextBiasAnalyzer:
             Protected attributes to analyze against.
         sample_size : int
             Number of samples per group to analyze.
-        
+
         Returns
         -------
         list[BiasFindings]
             List of detected bias findings.
         """
         findings = []
-        
+
         if not self.provider.is_available():
             return findings
-        
+
         # If no protected attributes specified, analyze text in isolation
         if not protected_attributes:
             for col in text_columns:
@@ -74,9 +75,9 @@ class TextBiasAnalyzer:
                     findings.extend(
                         self._analyze_column_by_group(data, col, attr, sample_size)
                     )
-        
+
         return findings
-    
+
     def _analyze_column_standalone(
         self,
         data: pd.DataFrame,
@@ -85,14 +86,14 @@ class TextBiasAnalyzer:
     ) -> list[BiasFindings]:
         """Analyze a text column without grouping."""
         findings = []
-        
+
         # Sample text
         text_data = data[column].dropna()
         if len(text_data) == 0:
             return findings
-        
+
         samples = text_data.sample(min(sample_size, len(text_data))).tolist()
-        
+
         prompt = f"""Analyze these text samples for potential bias:
 
 **Column:** {column}
@@ -111,9 +112,9 @@ If you find concerning patterns, describe them specifically with examples."""
 
         try:
             response = self.provider.complete(prompt, TEXT_ANALYST_SYSTEM)
-            
+
             # Parse response for findings
-            if any(word in response.content.lower() for word in 
+            if any(word in response.content.lower() for word in
                    ["stereotype", "bias", "discriminat", "exclusion", "problematic", "concern"]):
                 findings.append(BiasFindings(
                     category=BiasCategory.TEXT,
@@ -128,12 +129,12 @@ If you find concerning patterns, describe them specifically with examples."""
                         "Implement content guidelines for text fields",
                     ],
                 ))
-        except Exception as e:
+        except Exception:
             # Silently skip on LLM errors
             pass
-        
+
         return findings
-    
+
     def _analyze_column_by_group(
         self,
         data: pd.DataFrame,
@@ -143,7 +144,7 @@ If you find concerning patterns, describe them specifically with examples."""
     ) -> list[BiasFindings]:
         """Analyze text column grouped by protected attribute."""
         findings = []
-        
+
         # Get samples by group
         samples_by_group = {}
         for group in data[protected_attr].dropna().unique():
@@ -151,38 +152,38 @@ If you find concerning patterns, describe them specifically with examples."""
             if len(group_data) > 0:
                 n_samples = min(sample_size // len(data[protected_attr].unique()), len(group_data))
                 samples_by_group[str(group)] = group_data.sample(max(1, n_samples)).tolist()
-        
+
         if len(samples_by_group) < 2:
             return findings
-        
+
         # Format samples for prompt
         samples_text = ""
         for group, samples in samples_by_group.items():
             samples_text += f"\n**Group: {group}**\n"
             for s in samples[:10]:
                 samples_text += f'- "{s[:300]}"\n'
-        
+
         prompt = TEXT_ANALYSIS_TEMPLATE.format(
             protected_attribute=protected_attr,
             column_name=column,
             use_case="machine learning training",
             samples_by_group=samples_text,
         )
-        
+
         try:
             response = self.provider.complete(prompt, TEXT_ANALYST_SYSTEM)
-            
+
             # Check for significant findings
             content_lower = response.content.lower()
             severity = BiasSeverity.INFO
-            
-            if any(word in content_lower for word in 
+
+            if any(word in content_lower for word in
                    ["significant", "clear pattern", "systematic", "discriminat"]):
                 severity = BiasSeverity.CRITICAL
-            elif any(word in content_lower for word in 
+            elif any(word in content_lower for word in
                      ["pattern", "tendency", "difference", "stereotype", "bias"]):
                 severity = BiasSeverity.WARNING
-            
+
             if severity != BiasSeverity.INFO or "no significant" not in content_lower:
                 findings.append(BiasFindings(
                     category=BiasCategory.TEXT,
@@ -207,11 +208,11 @@ If you find concerning patterns, describe them specifically with examples."""
                         "protected_attribute": protected_attr,
                     },
                 ))
-        except Exception as e:
+        except Exception:
             pass
-        
+
         return findings
-    
+
     def analyze_specific_text(
         self,
         text: str,
@@ -219,14 +220,14 @@ If you find concerning patterns, describe them specifically with examples."""
     ) -> str:
         """
         Analyze a specific text sample for bias.
-        
+
         Parameters
         ----------
         text : str
             Text to analyze.
         context : str, optional
             Additional context about the text.
-        
+
         Returns
         -------
         str

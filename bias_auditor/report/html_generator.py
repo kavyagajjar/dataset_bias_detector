@@ -1,10 +1,7 @@
 """HTML report generation."""
 
-from typing import Optional
-from datetime import datetime
 
-from bias_auditor.core.report import AuditReport, BiasSeverity, BiasCategory
-
+from bias_auditor.core.report import AuditReport, BiasSeverity
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
@@ -23,13 +20,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             --text-color: #212529;
             --border-color: #dee2e6;
         }}
-        
+
         * {{
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }}
-        
+
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             line-height: 1.6;
@@ -37,12 +34,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             background-color: var(--bg-color);
             padding: 2rem;
         }}
-        
+
         .container {{
             max-width: 1200px;
             margin: 0 auto;
         }}
-        
+
         header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -51,17 +48,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             margin-bottom: 2rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }}
-        
+
         header h1 {{
             font-size: 2rem;
             margin-bottom: 0.5rem;
         }}
-        
+
         .meta {{
             opacity: 0.9;
             font-size: 0.9rem;
         }}
-        
+
         .score-card {{
             background: var(--card-bg);
             border-radius: 12px;
@@ -69,48 +66,48 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             margin-bottom: 2rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }}
-        
+
         .score-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
         }}
-        
+
         .score-item {{
             text-align: center;
             padding: 1rem;
             background: var(--bg-color);
             border-radius: 8px;
         }}
-        
+
         .score-value {{
             font-size: 2.5rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
         }}
-        
+
         .score-label {{
             font-size: 0.85rem;
             color: #666;
             text-transform: uppercase;
         }}
-        
+
         .severity-critical {{ color: var(--critical-color); }}
         .severity-warning {{ color: var(--warning-color); }}
         .severity-info {{ color: var(--info-color); }}
         .severity-success {{ color: var(--success-color); }}
-        
+
         .findings-section {{
             margin-bottom: 2rem;
         }}
-        
+
         .section-title {{
             font-size: 1.5rem;
             margin-bottom: 1rem;
             padding-bottom: 0.5rem;
             border-bottom: 2px solid var(--border-color);
         }}
-        
+
         .finding-card {{
             background: var(--card-bg);
             border-radius: 8px;
@@ -119,31 +116,31 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             border-left: 4px solid var(--border-color);
         }}
-        
+
         .finding-card.critical {{
             border-left-color: var(--critical-color);
         }}
-        
+
         .finding-card.warning {{
             border-left-color: var(--warning-color);
         }}
-        
+
         .finding-card.info {{
             border-left-color: var(--info-color);
         }}
-        
+
         .finding-header {{
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 1rem;
         }}
-        
+
         .finding-title {{
             font-size: 1.1rem;
             font-weight: 600;
         }}
-        
+
         .finding-badge {{
             display: inline-block;
             padding: 0.25rem 0.75rem;
@@ -152,93 +149,93 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             font-weight: 600;
             text-transform: uppercase;
         }}
-        
+
         .badge-critical {{
             background-color: var(--critical-color);
             color: white;
         }}
-        
+
         .badge-warning {{
             background-color: var(--warning-color);
             color: #212529;
         }}
-        
+
         .badge-info {{
             background-color: var(--info-color);
             color: white;
         }}
-        
+
         .finding-description {{
             color: #555;
             margin-bottom: 1rem;
         }}
-        
+
         .metrics-grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 0.75rem;
             margin-bottom: 1rem;
         }}
-        
+
         .metric {{
             background: var(--bg-color);
             padding: 0.75rem;
             border-radius: 6px;
         }}
-        
+
         .metric-label {{
             font-size: 0.75rem;
             color: #666;
         }}
-        
+
         .metric-value {{
             font-weight: 600;
         }}
-        
+
         .remediation {{
             background: #e8f5e9;
             padding: 1rem;
             border-radius: 6px;
             margin-top: 1rem;
         }}
-        
+
         .remediation-title {{
             font-weight: 600;
             margin-bottom: 0.5rem;
             color: #2e7d32;
         }}
-        
+
         .remediation ul {{
             margin-left: 1.5rem;
         }}
-        
+
         .category-scores {{
             margin-top: 1.5rem;
         }}
-        
+
         .category-bar {{
             margin-bottom: 0.75rem;
         }}
-        
+
         .category-label {{
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.25rem;
         }}
-        
+
         .bar-container {{
             height: 8px;
             background: #e9ecef;
             border-radius: 4px;
             overflow: hidden;
         }}
-        
+
         .bar-fill {{
             height: 100%;
             border-radius: 4px;
             transition: width 0.3s ease;
         }}
-        
+
         .executive-summary {{
             background: var(--card-bg);
             border-radius: 12px;
@@ -343,27 +340,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             margin-bottom: 1rem;
             font-size: 0.9rem;
         }}
-        
+
         .executive-summary h2 {{
             margin-bottom: 1rem;
         }}
-        
+
         footer {{
             text-align: center;
             padding: 2rem;
             color: #666;
             font-size: 0.85rem;
         }}
-        
+
         @media (max-width: 768px) {{
             body {{
                 padding: 1rem;
             }}
-            
+
             header {{
                 padding: 1.5rem;
             }}
-            
+
             header h1 {{
                 font-size: 1.5rem;
             }}
@@ -380,7 +377,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <p><strong>Generated:</strong> {timestamp}</p>
             </div>
         </header>
-        
+
         <div class="score-card">
             <div class="score-grid">
                 <div class="score-item">
@@ -400,13 +397,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     <div class="score-label">Total Findings</div>
                 </div>
             </div>
-            
+
             <div class="category-scores">
                 <h3>Bias by Category</h3>
                 {category_bars}
             </div>
         </div>
-        
+
         {executive_summary_section}
 
         {profile_section}
@@ -458,12 +455,12 @@ FINDING_CARD_TEMPLATE = """
 def generate_html_report(report: AuditReport) -> str:
     """
     Generate an HTML report from an audit report.
-    
+
     Parameters
     ----------
     report : AuditReport
         The audit report to render.
-    
+
     Returns
     -------
     str
@@ -476,7 +473,7 @@ def generate_html_report(report: AuditReport) -> str:
         overall_score_class = "severity-warning"
     else:
         overall_score_class = "severity-critical"
-    
+
     # Category bars
     category_bars = ""
     for category, score in report.category_scores.items():
@@ -492,7 +489,7 @@ def generate_html_report(report: AuditReport) -> str:
             </div>
         </div>
         """
-    
+
     # Executive summary
     executive_summary_section = ""
     if report.executive_summary:
@@ -502,14 +499,14 @@ def generate_html_report(report: AuditReport) -> str:
             <p>{report.executive_summary}</p>
         </div>
         """
-    
+
     # Findings by severity
     critical_findings = _render_findings(report.critical_findings)
     warning_findings = _render_findings(report.warning_findings)
     info_findings = _render_findings(
         [f for f in report.findings if f.severity == BiasSeverity.INFO]
     )
-    
+
     # Render template
     html = HTML_TEMPLATE.format(
         dataset_name=report.dataset_name or "Unknown Dataset",
@@ -736,11 +733,11 @@ def _render_findings(findings: list) -> str:
     """Render a list of findings as HTML cards."""
     if not findings:
         return ""
-    
+
     html = ""
     for finding in findings:
         severity_class = finding.severity.value
-        
+
         # Render metrics
         metrics_html = ""
         for key, value in list(finding.metrics.items())[:6]:
@@ -754,7 +751,7 @@ def _render_findings(findings: list) -> str:
                 <div class="metric-value">{value_str}</div>
             </div>
             """
-        
+
         # Render remediation
         remediation_html = ""
         if finding.remediation_suggestions:
@@ -765,7 +762,7 @@ def _render_findings(findings: list) -> str:
                 <ul>{suggestions}</ul>
             </div>
             """
-        
+
         html += FINDING_CARD_TEMPLATE.format(
             severity_class=severity_class,
             title=finding.title,
@@ -774,5 +771,5 @@ def _render_findings(findings: list) -> str:
             metrics_html=metrics_html,
             remediation_html=remediation_html,
         )
-    
+
     return html

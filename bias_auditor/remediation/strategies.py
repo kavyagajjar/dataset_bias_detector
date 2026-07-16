@@ -2,14 +2,14 @@
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
-from bias_auditor.core.report import BiasFindings, BiasCategory, BiasSeverity
+from bias_auditor.core.report import BiasCategory, BiasFindings
 
 
 class StrategyType(str, Enum):
     """Types of remediation strategies."""
-    
+
     RESAMPLING = "resampling"
     REWEIGHTING = "reweighting"
     PREPROCESSING = "preprocessing"
@@ -21,7 +21,7 @@ class StrategyType(str, Enum):
 @dataclass
 class RemediationStrategy:
     """A remediation strategy for addressing bias."""
-    
+
     strategy_type: StrategyType
     name: str
     description: str
@@ -29,7 +29,7 @@ class RemediationStrategy:
     implementation_complexity: str  # "low", "medium", "high"
     effectiveness: str  # "low", "medium", "high"
     code_template: Optional[str] = None
-    
+
     def to_dict(self) -> dict:
         return {
             "type": self.strategy_type.value,
@@ -58,16 +58,16 @@ def oversample_minority(df, protected_attr, target_ratio=1.0):
     '''Oversample minority groups to achieve target ratio.'''
     majority_group = df[protected_attr].value_counts().idxmax()
     majority_size = df[df[protected_attr] == majority_group].shape[0]
-    
+
     balanced_dfs = [df[df[protected_attr] == majority_group]]
-    
+
     for group in df[protected_attr].unique():
         if group != majority_group:
             group_df = df[df[protected_attr] == group]
             target_size = int(majority_size * target_ratio)
             oversampled = resample(group_df, n_samples=target_size, random_state=42)
             balanced_dfs.append(oversampled)
-    
+
     return pd.concat(balanced_dfs, ignore_index=True)
 """,
     ),
@@ -101,17 +101,17 @@ from sklearn.utils import resample
 def undersample_majority(df, protected_attr):
     '''Undersample majority groups to match minority.'''
     minority_size = df[protected_attr].value_counts().min()
-    
+
     balanced_dfs = []
     for group in df[protected_attr].unique():
         group_df = df[df[protected_attr] == group]
         undersampled = resample(group_df, n_samples=minority_size, random_state=42)
         balanced_dfs.append(undersampled)
-    
+
     return pd.concat(balanced_dfs, ignore_index=True)
 """,
     ),
-    
+
     # Reweighting strategies
     RemediationStrategy(
         strategy_type=StrategyType.REWEIGHTING,
@@ -146,7 +146,7 @@ def equalized_reweighting(df, protected_attr, target_col):
     pass
 """,
     ),
-    
+
     # Preprocessing strategies
     RemediationStrategy(
         strategy_type=StrategyType.PREPROCESSING,
@@ -188,7 +188,7 @@ def impute_by_group(df, protected_attr, columns_to_impute):
     return result
 """,
     ),
-    
+
     # Feature engineering strategies
     RemediationStrategy(
         strategy_type=StrategyType.FEATURE_ENGINEERING,
@@ -217,7 +217,7 @@ def bin_proxy_feature(df, feature, n_bins=5):
     return df.drop(columns=[feature])
 """,
     ),
-    
+
     # Data collection strategies
     RemediationStrategy(
         strategy_type=StrategyType.DATA_COLLECTION,
@@ -228,7 +228,7 @@ def bin_proxy_feature(df, feature, n_bins=5):
         effectiveness="high",
         code_template=None,  # Not automatable
     ),
-    
+
     # Labeling strategies
     RemediationStrategy(
         strategy_type=StrategyType.LABELING,
@@ -254,12 +254,12 @@ def bin_proxy_feature(df, feature, n_bins=5):
 def get_remediation_strategies(finding: BiasFindings) -> list[RemediationStrategy]:
     """
     Get applicable remediation strategies for a finding.
-    
+
     Parameters
     ----------
     finding : BiasFindings
         The bias finding to remediate.
-    
+
     Returns
     -------
     list[RemediationStrategy]
@@ -269,11 +269,11 @@ def get_remediation_strategies(finding: BiasFindings) -> list[RemediationStrateg
         s for s in STRATEGIES
         if finding.category in s.applicable_categories
     ]
-    
+
     # Sort by effectiveness
     effectiveness_order = {"high": 0, "medium": 1, "low": 2}
     applicable.sort(key=lambda s: effectiveness_order.get(s.effectiveness, 3))
-    
+
     return applicable
 
 

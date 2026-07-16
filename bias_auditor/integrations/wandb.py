@@ -1,8 +1,8 @@
 """Weights & Biases integration for bias auditing."""
 
-from typing import Any, Optional
-import tempfile
 import os
+import tempfile
+from typing import Optional
 
 from bias_auditor.core.report import AuditReport
 
@@ -10,21 +10,21 @@ from bias_auditor.core.report import AuditReport
 class WandbIntegration:
     """
     Weights & Biases integration for logging bias audit results.
-    
+
     Logs metrics, summaries, and artifacts to W&B for experiment tracking.
-    
+
     Example
     -------
     >>> from bias_auditor import BiasAuditor
     >>> from bias_auditor.integrations import WandbIntegration
-    >>> 
+    >>>
     >>> auditor = BiasAuditor(protected_attributes=['gender'])
     >>> report = auditor.audit(df)
-    >>> 
+    >>>
     >>> wandb_int = WandbIntegration(project="bias-audits")
     >>> wandb_int.log_audit(report)
     """
-    
+
     def __init__(
         self,
         project: Optional[str] = None,
@@ -33,7 +33,7 @@ class WandbIntegration:
     ):
         """
         Initialize W&B integration.
-        
+
         Parameters
         ----------
         project : str, optional
@@ -49,12 +49,12 @@ class WandbIntegration:
         except ImportError:
             raise ImportError(
                 "wandb not installed. Install with: pip install wandb"
-            )
-        
+            ) from None
+
         self.project = project or "bias-auditor"
         self.entity = entity
         self.config = config or {}
-    
+
     def log_audit(
         self,
         report: AuditReport,
@@ -66,7 +66,7 @@ class WandbIntegration:
     ) -> str:
         """
         Log audit report to Weights & Biases.
-        
+
         Parameters
         ----------
         report : AuditReport
@@ -81,7 +81,7 @@ class WandbIntegration:
             Notes for the run.
         finish : bool
             Whether to finish the run after logging.
-        
+
         Returns
         -------
         str
@@ -94,7 +94,7 @@ class WandbIntegration:
             "dataset_name": report.dataset_name,
             "protected_attributes": report.config_summary.get("protected_attributes", []),
         }
-        
+
         # Initialize run
         run = self._wandb.init(
             project=self.project,
@@ -104,18 +104,18 @@ class WandbIntegration:
             tags=tags or ["bias-audit"],
             notes=notes,
         )
-        
+
         # Log summary metrics
         self._wandb.summary["bias_score"] = report.overall_bias_score
         self._wandb.summary["critical_findings"] = len(report.critical_findings)
         self._wandb.summary["warning_findings"] = len(report.warning_findings)
         self._wandb.summary["total_findings"] = len(report.findings)
         self._wandb.summary["has_critical_bias"] = report.has_critical_bias
-        
+
         # Log category scores
         for category, score in report.category_scores.items():
             self._wandb.summary[f"bias_{category}"] = score
-        
+
         # Log metrics over time (if running multiple audits)
         self._wandb.log({
             "bias_score": report.overall_bias_score,
@@ -123,7 +123,7 @@ class WandbIntegration:
             "warning_findings": len(report.warning_findings),
             **{f"bias_{k}": v for k, v in report.category_scores.items()}
         })
-        
+
         # Create findings table
         if report.findings:
             findings_table = self._wandb.Table(
@@ -138,9 +138,9 @@ class WandbIntegration:
                     f.affected_attribute,
                 )
             self._wandb.log({"findings": findings_table})
-        
+
         # Log category scores as bar chart
-        category_data = [[cat.replace("_", " ").title(), score] 
+        category_data = [[cat.replace("_", " ").title(), score]
                         for cat, score in report.category_scores.items()]
         if category_data:
             table = self._wandb.Table(data=category_data, columns=["Category", "Score"])
@@ -150,36 +150,36 @@ class WandbIntegration:
                     title="Bias Score by Category"
                 )
             })
-        
+
         # Log artifacts
         with tempfile.TemporaryDirectory() as tmpdir:
             # JSON report
             json_path = os.path.join(tmpdir, "audit_report.json")
             with open(json_path, "w") as f:
                 f.write(report.to_json())
-            
+
             artifact = self._wandb.Artifact(
                 name=f"bias-report-{report.audit_id}",
                 type="bias-audit",
                 description=f"Bias audit report for {report.dataset_name or 'dataset'}",
             )
             artifact.add_file(json_path, name="report.json")
-            
+
             # HTML report
             if log_html:
                 html_path = os.path.join(tmpdir, "audit_report.html")
                 report.to_html(html_path)
                 artifact.add_file(html_path, name="report.html")
-            
+
             self._wandb.log_artifact(artifact)
-        
+
         run_id = run.id
-        
+
         if finish:
             self._wandb.finish()
-        
+
         return run_id
-    
+
     def log_to_existing_run(
         self,
         report: AuditReport,
@@ -187,9 +187,9 @@ class WandbIntegration:
     ):
         """
         Log audit metrics to the current W&B run.
-        
+
         Useful for adding bias metrics during model training.
-        
+
         Parameters
         ----------
         report : AuditReport
@@ -199,24 +199,24 @@ class WandbIntegration:
         """
         if self._wandb.run is None:
             raise RuntimeError("No active W&B run. Call wandb.init() first.")
-        
+
         self._wandb.log({
             f"{prefix}bias_score": report.overall_bias_score,
             f"{prefix}critical_findings": len(report.critical_findings),
             **{f"{prefix}bias_{k}": v for k, v in report.category_scores.items()}
         })
-        
+
         self._wandb.summary[f"{prefix}has_critical_bias"] = report.has_critical_bias
-    
+
     def create_report_panel(self, report: AuditReport) -> dict:
         """
         Create W&B report panel configuration.
-        
+
         Parameters
         ----------
         report : AuditReport
             The audit report.
-        
+
         Returns
         -------
         dict
@@ -233,7 +233,7 @@ class WandbIntegration:
                 ],
             }
         }
-    
+
     def log_comparison(
         self,
         reports: list[AuditReport],
@@ -241,7 +241,7 @@ class WandbIntegration:
     ):
         """
         Log comparison of multiple audit reports.
-        
+
         Parameters
         ----------
         reports : list[AuditReport]
@@ -251,18 +251,18 @@ class WandbIntegration:
         """
         if self._wandb.run is None:
             self._wandb.init(project=self.project, entity=self.entity)
-        
+
         names = names or [r.audit_id for r in reports]
-        
+
         # Create comparison table
         columns = ["Name", "Bias Score", "Critical", "Warnings", "Total"]
         all_categories = set()
         for r in reports:
             all_categories.update(r.category_scores.keys())
         columns.extend([f"{cat.replace('_', ' ').title()}" for cat in sorted(all_categories)])
-        
+
         table = self._wandb.Table(columns=columns)
-        
+
         for name, report in zip(names, reports):
             row = [
                 name,
@@ -274,5 +274,5 @@ class WandbIntegration:
             for cat in sorted(all_categories):
                 row.append(report.category_scores.get(cat, 0))
             table.add_data(*row)
-        
+
         self._wandb.log({"audit_comparison": table})

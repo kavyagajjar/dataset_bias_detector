@@ -1,11 +1,11 @@
 """Remediation strategies and code generation."""
 
+from bias_auditor.remediation.resampling import ResamplingRemediation
+from bias_auditor.remediation.reweighting import ReweightingRemediation
 from bias_auditor.remediation.strategies import (
     RemediationStrategy,
     get_remediation_strategies,
 )
-from bias_auditor.remediation.resampling import ResamplingRemediation
-from bias_auditor.remediation.reweighting import ReweightingRemediation
 
 __all__ = [
     "RemediationStrategy",

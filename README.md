@@ -3,7 +3,7 @@
 **Detect representation biases, label biases, and fairness issues in datasets *before* training — with actionable remediation suggestions.**
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## Why This Tool?
 
@@ -288,4 +288,4 @@ Contributions welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.

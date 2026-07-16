@@ -6,12 +6,11 @@ groups, and a binary target column is guessed from common naming conventions.
 All detections are surfaced to the caller so they can be reviewed.
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
-import re
 
 import pandas as pd
-
 
 # Column-name patterns for protected/sensitive attributes.
 # Matched case-insensitively against the full column name.
@@ -34,6 +33,8 @@ PROTECTED_PATTERNS: dict[str, str] = {
 TARGET_NAME_CANDIDATES: list[str] = [
     "target", "label", "outcome", "y",
     "approved", "approval", "hired", "admitted", "accepted", "granted",
+    "promoted", "selected", "satisfied", "converted", "retained",
+    "purchased", "subscribed", "success",
     "default", "churn", "fraud", "readmitted", "recidivism",
     "loan_status", "credit_risk", "decision", "result", "class",
 ]

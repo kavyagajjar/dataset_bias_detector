@@ -68,6 +68,17 @@ class TestDetectTargetColumn:
         # 'label' comes before 'approved' in the candidate list
         assert detect_target_column(df) == "label"
 
+    def test_detects_promoted_and_satisfied(self):
+        # Regression: these were missed in skill evals (yes/no promotions,
+        # survey satisfaction) before being added to the candidate list
+        df1 = pd.DataFrame({"promoted": ["yes", "no", "yes"]})
+        assert detect_target_column(df1) == "promoted"
+        df2 = pd.DataFrame({"satisfied": [0, 1, 1]})
+        assert detect_target_column(df2) == "satisfied"
+
+    def test_yes_no_positive_label(self):
+        assert infer_positive_label(pd.Series(["yes", "no", "no"])) == "yes"
+
 
 class TestInferPositiveLabel:
     def test_binary_numeric(self):

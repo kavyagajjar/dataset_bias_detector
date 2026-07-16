@@ -4,98 +4,96 @@ Label Bias Detector.
 Detects systematic differences in labeling across protected groups.
 """
 
-from typing import Any, Optional
 import numpy as np
 import pandas as pd
 from scipy import stats
 
 from bias_auditor.core.config import AuditConfig
-from bias_auditor.core.report import BiasFindings, BiasSeverity, BiasCategory
+from bias_auditor.core.report import BiasCategory, BiasFindings, BiasSeverity
 from bias_auditor.metrics.fairness import (
-    statistical_parity_difference,
     disparate_impact_ratio,
     group_label_rates,
-    conditional_demographic_parity,
+    statistical_parity_difference,
 )
 
 
 class LabelBiasDetector:
     """
     Detector for label/outcome biases in datasets.
-    
+
     Checks for:
     - Disparate impact (80% rule)
     - Statistical parity differences
     - Label rate disparities across groups
     - Conditional parity violations
     """
-    
+
     def __init__(self, config: AuditConfig):
         self.config = config
         self.thresholds = config.thresholds
-    
+
     def detect(self, data: pd.DataFrame) -> list[BiasFindings]:
         """
         Detect label biases in the dataset.
-        
+
         Parameters
         ----------
         data : pd.DataFrame
             The dataset to analyze.
-        
+
         Returns
         -------
         list[BiasFindings]
             List of detected bias findings.
         """
         findings = []
-        
+
         if not self.config.target_column:
             return findings
-        
+
         if self.config.target_column not in data.columns:
             return findings
-        
+
         for attr in self.config.protected_attributes:
             if attr not in data.columns:
                 continue
-            
+
             # Check disparate impact
             findings.extend(self._check_disparate_impact(data, attr))
-            
+
             # Check statistical parity
             findings.extend(self._check_statistical_parity(data, attr))
-            
+
             # Check for significant label rate differences
             findings.extend(self._check_label_rate_significance(data, attr))
-        
+
         # Check intersectional label bias
         if self.config.compute_intersectional:
             findings.extend(self._check_intersectional_label_bias(data))
-        
+
         return findings
-    
+
     def _check_disparate_impact(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         attr: str
     ) -> list[BiasFindings]:
         """Check for disparate impact (80% rule violation)."""
         findings = []
-        
+
         dir_result = disparate_impact_ratio(
-            data, 
-            attr, 
+            data,
+            attr,
             self.config.target_column,
             self.config.positive_label
         )
-        
+
         dir_value = dir_result["dir"]
-        
+
         # Handle edge cases
         if dir_value == float('inf') or np.isnan(dir_value):
             return findings
-        
+
         if dir_value < self.thresholds.disparate_impact_critical:
             findings.append(BiasFindings(
                 category=BiasCategory.LABEL,
@@ -157,26 +155,26 @@ class LabelBiasDetector:
                     "all_group_rates": dir_result["all_rates"],
                 },
             ))
-        
+
         return findings
-    
+
     def _check_statistical_parity(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         attr: str
     ) -> list[BiasFindings]:
         """Check statistical parity difference."""
         findings = []
-        
+
         spd_result = statistical_parity_difference(
             data,
             attr,
             self.config.target_column,
             self.config.positive_label
         )
-        
+
         spd = abs(spd_result["spd"])
-        
+
         if spd > self.thresholds.statistical_parity_critical:
             findings.append(BiasFindings(
                 category=BiasCategory.LABEL,
@@ -231,41 +229,41 @@ class LabelBiasDetector:
                     "all_rates": spd_result["all_rates"],
                 },
             ))
-        
+
         return findings
-    
+
     def _check_label_rate_significance(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         attr: str
     ) -> list[BiasFindings]:
         """Check if label rate differences are statistically significant."""
         findings = []
-        
+
         # Get label rates by group
         rates = group_label_rates(
             data, attr, self.config.target_column, self.config.positive_label
         )
-        
+
         # Perform chi-squared test
         contingency = pd.crosstab(
-            data[attr], 
+            data[attr],
             data[self.config.target_column] == self.config.positive_label
         )
-        
+
         if contingency.shape[0] < 2 or contingency.shape[1] < 2:
             return findings
-        
+
         try:
             chi2, p_value, dof, expected = stats.chi2_contingency(contingency)
         except Exception:
             return findings
-        
+
         # Calculate Cramér's V for effect size
         n = contingency.sum().sum()
         min_dim = min(contingency.shape) - 1
         cramers_v = np.sqrt(chi2 / (n * min_dim)) if min_dim > 0 else 0
-        
+
         if p_value < 0.001 and cramers_v > 0.3:
             findings.append(BiasFindings(
                 category=BiasCategory.LABEL,
@@ -319,43 +317,43 @@ class LabelBiasDetector:
                     "group_rates": {k: v for k, v in rates.items() if k != "_summary"},
                 },
             ))
-        
+
         return findings
-    
+
     def _check_intersectional_label_bias(
-        self, 
+        self,
         data: pd.DataFrame
     ) -> list[BiasFindings]:
         """Check for intersectional label biases."""
         findings = []
-        
+
         if len(self.config.protected_attributes) < 2:
             return findings
-        
+
         # Check pairs of protected attributes
         attrs = [a for a in self.config.protected_attributes if a in data.columns]
-        
+
         for i, attr1 in enumerate(attrs):
             for attr2 in attrs[i+1:]:
                 # Create intersection
                 intersection = data[attr1].astype(str) + "_" + data[attr2].astype(str)
-                
+
                 # Calculate label rates for each intersection
                 intersection_rates = data.groupby(intersection)[
                     self.config.target_column
                 ].apply(lambda x: (x == self.config.positive_label).mean())
-                
+
                 if len(intersection_rates) < 2:
                     continue
-                
+
                 max_rate = intersection_rates.max()
                 min_rate = intersection_rates.min()
                 disparity = max_rate - min_rate
-                
+
                 if disparity > self.thresholds.label_rate_disparity_critical:
                     max_group = intersection_rates.idxmax()
                     min_group = intersection_rates.idxmin()
-                    
+
                     findings.append(BiasFindings(
                         category=BiasCategory.INTERSECTIONAL,
                         severity=BiasSeverity.WARNING,
@@ -384,5 +382,5 @@ class LabelBiasDetector:
                             "intersection_rates": intersection_rates.to_dict(),
                         },
                     ))
-        
+
         return findings

@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 class LLMProvider(str, Enum):
     """Supported LLM providers."""
-    
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     AZURE = "azure"
@@ -19,47 +19,47 @@ class LLMProvider(str, Enum):
 class BiasThresholds:
     """
     Thresholds for determining bias severity levels.
-    
+
     Based on industry standards and legal guidelines (e.g., 80% rule for disparate impact).
     """
-    
+
     # Disparate Impact Ratio thresholds
     # < 0.8 is typically considered adverse impact (EEOC 80% rule)
     disparate_impact_warning: float = 0.9
     disparate_impact_critical: float = 0.8
-    
+
     # Statistical Parity Difference thresholds
     # |SPD| > 0.1 often indicates significant disparity
     statistical_parity_warning: float = 0.1
     statistical_parity_critical: float = 0.2
-    
+
     # Class imbalance ratio thresholds
     # Ratio of majority to minority class
     imbalance_ratio_warning: float = 3.0
     imbalance_ratio_critical: float = 5.0
-    
+
     # Representation thresholds (minimum group proportion)
     min_group_proportion_warning: float = 0.1
     min_group_proportion_critical: float = 0.05
-    
+
     # Missing data disparity thresholds
     # Difference in missing rates between groups
     missing_rate_disparity_warning: float = 0.1
     missing_rate_disparity_critical: float = 0.2
-    
+
     # Proxy variable detection thresholds
     # Correlation with protected attribute
     proxy_correlation_warning: float = 0.5
     proxy_correlation_critical: float = 0.7
-    
+
     # Mutual information threshold for proxy detection
     proxy_mutual_info_warning: float = 0.3
     proxy_mutual_info_critical: float = 0.5
-    
+
     # Label bias thresholds
     label_rate_disparity_warning: float = 0.1
     label_rate_disparity_critical: float = 0.2
-    
+
     def to_dict(self) -> dict[str, float]:
         """Convert thresholds to dictionary."""
         return {
@@ -85,20 +85,20 @@ class BiasThresholds:
 @dataclass
 class LLMConfig:
     """Configuration for LLM integration."""
-    
+
     provider: LLMProvider = LLMProvider.NONE
     model: str = "gpt-4o"
     api_key: Optional[str] = None
     api_base: Optional[str] = None
     temperature: float = 0.3
     max_tokens: int = 2000
-    
+
     # Feature flags for LLM capabilities
     enable_text_analysis: bool = True
     enable_explanations: bool = True
     enable_code_generation: bool = True
     enable_remediation_suggestions: bool = True
-    
+
     # Caching
     cache_responses: bool = True
     cache_ttl_seconds: int = 3600
@@ -108,7 +108,7 @@ class LLMConfig:
 class AuditConfig:
     """
     Main configuration for the bias auditor.
-    
+
     Parameters
     ----------
     protected_attributes : list[str]
@@ -124,41 +124,41 @@ class AuditConfig:
     llm_config : LLMConfig, optional
         Configuration for LLM features.
     """
-    
+
     protected_attributes: list[str] = field(default_factory=list)
     target_column: Optional[str] = None
     positive_label: Any = 1
-    
+
     # Reference population distributions for comparison
     # Format: {"attribute_name": {"group1": proportion1, "group2": proportion2}}
     reference_distributions: dict[str, dict[str, float]] = field(default_factory=dict)
-    
+
     # Columns to exclude from analysis
     exclude_columns: list[str] = field(default_factory=list)
-    
+
     # Columns containing free text (for LLM analysis)
     text_columns: list[str] = field(default_factory=list)
-    
+
     # Threshold configuration
     thresholds: BiasThresholds = field(default_factory=BiasThresholds)
-    
+
     # LLM configuration
     llm_config: LLMConfig = field(default_factory=LLMConfig)
-    
+
     # Analysis settings
     auto_detect: bool = False  # Auto-detect protected attributes/target from column names
     compute_intersectional: bool = True  # Analyze intersections of protected attributes
     max_intersectional_depth: int = 2  # Max number of attributes to combine
     min_group_size: int = 30  # Minimum samples to consider a group
-    
+
     # Output settings
     verbose: bool = True
     generate_visualizations: bool = True
-    
+
     def validate(self) -> list[str]:
         """Validate configuration and return list of warnings."""
         warnings = []
-        
+
         if not self.protected_attributes and not self.auto_detect:
             warnings.append("No protected attributes specified. "
                           "Consider adding attributes like 'gender', 'race', 'age_group', "
@@ -167,28 +167,28 @@ class AuditConfig:
         if self.target_column is None and not self.auto_detect:
             warnings.append("No target column specified. "
                           "Label bias detection will be skipped.")
-        
+
         if self.llm_config.provider != LLMProvider.NONE and not self.llm_config.api_key:
             warnings.append(f"LLM provider '{self.llm_config.provider}' selected but no API key provided. "
                           "Set via api_key or environment variable.")
-        
+
         return warnings
-    
+
     @classmethod
     def from_dict(cls, config_dict: dict) -> "AuditConfig":
         """Create config from dictionary."""
         # Handle nested configs
         if "thresholds" in config_dict and isinstance(config_dict["thresholds"], dict):
             config_dict["thresholds"] = BiasThresholds(**config_dict["thresholds"])
-        
+
         if "llm_config" in config_dict and isinstance(config_dict["llm_config"], dict):
             llm_dict = config_dict["llm_config"]
             if "provider" in llm_dict and isinstance(llm_dict["provider"], str):
                 llm_dict["provider"] = LLMProvider(llm_dict["provider"])
             config_dict["llm_config"] = LLMConfig(**llm_dict)
-        
+
         return cls(**config_dict)
-    
+
     def to_dict(self) -> dict:
         """Convert config to dictionary."""
         return {

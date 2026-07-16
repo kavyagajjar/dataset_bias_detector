@@ -28,7 +28,7 @@ With MLOps integration:
 
 from bias_auditor.core.auditor import BiasAuditor
 from bias_auditor.core.config import AuditConfig, BiasThresholds, LLMConfig
-from bias_auditor.core.report import AuditReport, BiasFindings, BiasSeverity, BiasCategory
+from bias_auditor.core.report import AuditReport, BiasCategory, BiasFindings, BiasSeverity
 
 __version__ = "0.1.0"
 __all__ = [

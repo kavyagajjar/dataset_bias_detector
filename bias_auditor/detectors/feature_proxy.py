@@ -4,26 +4,25 @@ Feature Proxy Detector.
 Detects features that may serve as proxies for protected attributes.
 """
 
-from typing import Optional
 import numpy as np
 import pandas as pd
 from scipy import stats
 
 from bias_auditor.core.config import AuditConfig
-from bias_auditor.core.report import BiasFindings, BiasSeverity, BiasCategory
-from bias_auditor.metrics.fairness import mutual_information, chi_squared_test
+from bias_auditor.core.report import BiasCategory, BiasFindings, BiasSeverity
+from bias_auditor.metrics.fairness import chi_squared_test, mutual_information
 
 
 class FeatureProxyDetector:
     """
     Detector for proxy variables that encode protected attributes.
-    
+
     Checks for:
     - High correlation with protected attributes
     - High mutual information with protected attributes
     - Known proxy patterns (zip code, name patterns, etc.)
     """
-    
+
     # Known proxy patterns - features commonly associated with protected attributes
     KNOWN_PROXY_PATTERNS = {
         "location": ["zip", "postal", "address", "neighborhood", "district", "county", "region"],
@@ -32,27 +31,27 @@ class FeatureProxyDetector:
         "employment": ["employer", "company", "job_title", "occupation"],
         "financial": ["income", "salary", "credit", "wealth", "assets"],
     }
-    
+
     def __init__(self, config: AuditConfig):
         self.config = config
         self.thresholds = config.thresholds
-    
+
     def detect(self, data: pd.DataFrame) -> list[BiasFindings]:
         """
         Detect proxy variables in the dataset.
-        
+
         Parameters
         ----------
         data : pd.DataFrame
             The dataset to analyze.
-        
+
         Returns
         -------
         list[BiasFindings]
             List of detected bias findings.
         """
         findings = []
-        
+
         # Get non-protected feature columns
         feature_columns = [
             col for col in data.columns
@@ -60,48 +59,48 @@ class FeatureProxyDetector:
             and col != self.config.target_column
             and col not in self.config.exclude_columns
         ]
-        
+
         for attr in self.config.protected_attributes:
             if attr not in data.columns:
                 continue
-            
+
             for feature in feature_columns:
                 # Check correlation/association
                 findings.extend(self._check_association(data, feature, attr))
-                
+
                 # Check mutual information
                 findings.extend(self._check_mutual_information(data, feature, attr))
-            
+
             # Check known proxy patterns
             findings.extend(self._check_known_patterns(data, attr, feature_columns))
-        
+
         return findings
-    
+
     def _check_association(
-        self, 
-        data: pd.DataFrame, 
-        feature: str, 
+        self,
+        data: pd.DataFrame,
+        feature: str,
         protected_attr: str
     ) -> list[BiasFindings]:
         """Check correlation or association between feature and protected attribute."""
         findings = []
-        
+
         # Handle missing values
         valid_mask = data[[feature, protected_attr]].notna().all(axis=1)
         if valid_mask.sum() < 30:
             return findings
-        
+
         feature_data = data.loc[valid_mask, feature]
         protected_data = data.loc[valid_mask, protected_attr]
-        
+
         # Determine data types and appropriate test
         feature_is_numeric = feature_data.dtype in ['float64', 'float32', 'int64', 'int32']
         protected_is_numeric = protected_data.dtype in ['float64', 'float32', 'int64', 'int32']
-        
+
         correlation = None
         p_value = None
         test_type = None
-        
+
         try:
             if feature_is_numeric and protected_is_numeric:
                 # Pearson correlation
@@ -111,7 +110,7 @@ class FeatureProxyDetector:
                 # Point-biserial or ANOVA-based correlation
                 groups = [feature_data[protected_data == g].values for g in protected_data.unique()]
                 groups = [g for g in groups if len(g) > 1]
-                
+
                 if len(groups) >= 2:
                     if len(protected_data.unique()) == 2:
                         # Point-biserial
@@ -138,12 +137,12 @@ class FeatureProxyDetector:
                 test_type = "cramers_v"
         except Exception:
             return findings
-        
+
         if correlation is None:
             return findings
-        
+
         abs_corr = abs(correlation)
-        
+
         if abs_corr > self.thresholds.proxy_correlation_critical:
             findings.append(BiasFindings(
                 category=BiasCategory.FEATURE_PROXY,
@@ -201,23 +200,23 @@ class FeatureProxyDetector:
                     "n_samples": int(valid_mask.sum()),
                 },
             ))
-        
+
         return findings
-    
+
     def _check_mutual_information(
-        self, 
-        data: pd.DataFrame, 
-        feature: str, 
+        self,
+        data: pd.DataFrame,
+        feature: str,
         protected_attr: str
     ) -> list[BiasFindings]:
         """Check mutual information between feature and protected attribute."""
         findings = []
-        
+
         try:
             mi = mutual_information(data, feature, protected_attr)
         except Exception:
             return findings
-        
+
         if mi > self.thresholds.proxy_mutual_info_critical:
             findings.append(BiasFindings(
                 category=BiasCategory.FEATURE_PROXY,
@@ -258,22 +257,22 @@ class FeatureProxyDetector:
                     "Monitor for fairness implications",
                 ],
             ))
-        
+
         return findings
-    
+
     def _check_known_patterns(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         protected_attr: str,
         feature_columns: list[str]
     ) -> list[BiasFindings]:
         """Check for known proxy patterns in feature names."""
         findings = []
-        
+
         for category, patterns in self.KNOWN_PROXY_PATTERNS.items():
             for feature in feature_columns:
                 feature_lower = feature.lower()
-                
+
                 for pattern in patterns:
                     if pattern in feature_lower:
                         # Check actual association
@@ -281,7 +280,7 @@ class FeatureProxyDetector:
                             mi = mutual_information(data, feature, protected_attr)
                         except Exception:
                             mi = None
-                        
+
                         if mi is not None and mi > 0.1:
                             findings.append(BiasFindings(
                                 category=BiasCategory.FEATURE_PROXY,
@@ -302,9 +301,9 @@ class FeatureProxyDetector:
                                 remediation_suggestions=self._get_proxy_remediation(category, feature),
                             ))
                         break
-        
+
         return findings
-    
+
     def _get_proxy_explanation(self, category: str) -> str:
         """Get explanation for why a category is a potential proxy."""
         explanations = {
@@ -329,14 +328,14 @@ class FeatureProxyDetector:
             ),
         }
         return explanations.get(category, "")
-    
+
     def _get_proxy_remediation(self, category: str, feature: str) -> list[str]:
         """Get category-specific remediation suggestions."""
         base_suggestions = [
             f"Evaluate whether '{feature}' is necessary for the prediction task",
             "Test model fairness with and without this feature",
         ]
-        
+
         category_suggestions = {
             "location": [
                 "Consider using region-level aggregation instead of precise location",
@@ -359,5 +358,5 @@ class FeatureProxyDetector:
                 "Apply binning or quantile normalization",
             ],
         }
-        
+
         return base_suggestions + category_suggestions.get(category, [])

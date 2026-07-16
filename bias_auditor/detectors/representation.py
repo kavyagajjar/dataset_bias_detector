@@ -5,80 +5,78 @@ Detects underrepresentation, overrepresentation, and distribution skew
 in protected attributes.
 """
 
-from typing import Optional
-import numpy as np
 import pandas as pd
 
 from bias_auditor.core.config import AuditConfig
-from bias_auditor.core.report import BiasFindings, BiasSeverity, BiasCategory
+from bias_auditor.core.report import BiasCategory, BiasFindings, BiasSeverity
 from bias_auditor.metrics.fairness import (
     class_imbalance_ratio,
-    normalized_entropy,
     kl_divergence,
+    normalized_entropy,
 )
 
 
 class RepresentationDetector:
     """
     Detector for representation biases in datasets.
-    
+
     Checks for:
     - Underrepresented groups (below minimum threshold)
     - Severe class imbalance
     - Distribution skew vs. reference population
     - Simpson's paradox indicators
     """
-    
+
     def __init__(self, config: AuditConfig):
         self.config = config
         self.thresholds = config.thresholds
-    
+
     def detect(self, data: pd.DataFrame) -> list[BiasFindings]:
         """
         Detect representation biases in the dataset.
-        
+
         Parameters
         ----------
         data : pd.DataFrame
             The dataset to analyze.
-        
+
         Returns
         -------
         list[BiasFindings]
             List of detected bias findings.
         """
         findings = []
-        
+
         for attr in self.config.protected_attributes:
             if attr not in data.columns:
                 continue
-            
+
             # Check group proportions
             findings.extend(self._check_group_proportions(data, attr))
-            
+
             # Check class imbalance
             findings.extend(self._check_imbalance(data, attr))
-            
+
             # Check against reference distribution if provided
             if attr in self.config.reference_distributions:
                 findings.extend(self._check_reference_distribution(data, attr))
-            
+
             # Check for intersectional underrepresentation
             if self.config.compute_intersectional:
                 findings.extend(self._check_intersectional(data, attr))
-        
+
         return findings
-    
+
     def _check_group_proportions(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         attr: str
     ) -> list[BiasFindings]:
         """Check if any group falls below minimum proportion thresholds."""
         findings = []
-        
+
         distribution = data[attr].value_counts(normalize=True)
-        
+
         for group, proportion in distribution.items():
             if proportion < self.thresholds.min_group_proportion_critical:
                 findings.append(BiasFindings(
@@ -130,21 +128,21 @@ class RepresentationDetector:
                     ],
                     evidence={"full_distribution": distribution.to_dict()},
                 ))
-        
+
         return findings
-    
+
     def _check_imbalance(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         attr: str
     ) -> list[BiasFindings]:
         """Check overall class imbalance ratio."""
         findings = []
-        
+
         imbalance_result = class_imbalance_ratio(data, attr)
         ratio = imbalance_result["ratio"]
         entropy = normalized_entropy(data, attr)
-        
+
         if ratio > self.thresholds.imbalance_ratio_critical:
             findings.append(BiasFindings(
                 category=BiasCategory.REPRESENTATION,
@@ -200,33 +198,33 @@ class RepresentationDetector:
                 ],
                 evidence={"distribution": imbalance_result["distribution"]},
             ))
-        
+
         return findings
-    
+
     def _check_reference_distribution(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         attr: str
     ) -> list[BiasFindings]:
         """Compare distribution against reference population."""
         findings = []
-        
+
         observed = data[attr].value_counts(normalize=True).to_dict()
         expected = self.config.reference_distributions[attr]
-        
+
         # Calculate KL divergence
         kl_div = kl_divergence(observed, expected)
-        
+
         # Find most divergent groups
         divergences = {}
         for group in set(observed.keys()) | set(expected.keys()):
             obs_rate = observed.get(group, 0)
             exp_rate = expected.get(group, 0)
             divergences[group] = obs_rate - exp_rate
-        
+
         most_under = min(divergences.items(), key=lambda x: x[1])
         most_over = max(divergences.items(), key=lambda x: x[1])
-        
+
         if kl_div > 0.5:  # Significant divergence
             findings.append(BiasFindings(
                 category=BiasCategory.REPRESENTATION,
@@ -258,39 +256,39 @@ class RepresentationDetector:
                     "divergences": divergences,
                 },
             ))
-        
+
         return findings
-    
+
     def _check_intersectional(
-        self, 
-        data: pd.DataFrame, 
+        self,
+        data: pd.DataFrame,
         primary_attr: str
     ) -> list[BiasFindings]:
         """Check for intersectional underrepresentation."""
         findings = []
-        
+
         other_attrs = [
             a for a in self.config.protected_attributes
             if a != primary_attr and a in data.columns
         ]
-        
+
         if not other_attrs:
             return findings
-        
+
         for other_attr in other_attrs[:self.config.max_intersectional_depth - 1]:
             # Create intersection column
             intersection = data[primary_attr].astype(str) + "_" + data[other_attr].astype(str)
             intersection_counts = intersection.value_counts()
-            
+
             # Find very small intersections
             small_groups = intersection_counts[
                 intersection_counts < self.config.min_group_size
             ]
-            
+
             if len(small_groups) > 0:
                 total_small = small_groups.sum()
                 pct_small = total_small / len(data)
-                
+
                 if pct_small > 0.01:  # More than 1% in small intersections
                     findings.append(BiasFindings(
                         category=BiasCategory.INTERSECTIONAL,
@@ -318,5 +316,5 @@ class RepresentationDetector:
                             "small_groups": small_groups.to_dict(),
                         },
                     ))
-        
+
         return findings

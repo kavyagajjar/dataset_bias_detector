@@ -6,9 +6,9 @@ from typing import Optional
 
 import click
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 console = Console()
 
@@ -100,7 +100,7 @@ def audit(
             "or pass --auto to detect them automatically."
         )
         sys.exit(2)
-    
+
     # Load data
     with Progress(
         SpinnerColumn(),
@@ -109,7 +109,7 @@ def audit(
         transient=True,
     ) as progress:
         progress.add_task("Loading dataset...", total=None)
-        
+
         path = Path(data_path)
         if path.suffix == ".csv":
             data = pd.read_csv(path)
@@ -120,9 +120,9 @@ def audit(
         else:
             console.print(f"[red]Unsupported file format: {path.suffix}[/red]")
             sys.exit(1)
-    
+
     console.print(f"[green]✓[/green] Loaded {len(data)} rows, {len(data.columns)} columns")
-    
+
     # Parse positive label
     try:
         positive_label_parsed = int(positive_label)
@@ -131,12 +131,12 @@ def audit(
             positive_label_parsed = float(positive_label)
         except ValueError:
             positive_label_parsed = positive_label
-    
+
     # Create auditor
     thresholds = BiasThresholds(disparate_impact_critical=threshold_critical)
-    
+
     llm_provider_value = None if llm_provider == "none" else llm_provider
-    
+
     auditor = BiasAuditor(
         protected_attributes=list(protected),
         target_column=target,
@@ -146,7 +146,7 @@ def audit(
         auto_detect=auto,
         verbose=verbose,
     )
-    
+
     # Run audit
     with Progress(
         SpinnerColumn(),
@@ -156,7 +156,7 @@ def audit(
     ) as progress:
         progress.add_task("Running bias audit...", total=None)
         report = auditor.audit(data, dataset_name=path.name)
-    
+
     # Output results
     if format == "json":
         console.print(report.to_json())
@@ -166,7 +166,7 @@ def audit(
         console.print(report.remediation_plan())
     else:
         _print_summary(report)
-    
+
     # Save output file
     if output:
         output_path = Path(output)
@@ -178,10 +178,10 @@ def audit(
                 f.write(report.to_json())
             console.print(f"[green]✓[/green] JSON report saved to {output_path}")
         else:
-            console.print(f"[yellow]Warning: Unknown output format, saving as text[/yellow]")
+            console.print("[yellow]Warning: Unknown output format, saving as text[/yellow]")
             with open(output_path, "w") as f:
                 f.write(report.summary())
-    
+
     # Exit code based on findings
     if report.has_critical_bias:
         sys.exit(1)
@@ -205,12 +205,13 @@ def audit(
 def quick_check(data_path: str, protected: tuple, target: Optional[str]):
     """
     Quick bias check - returns key metrics only.
-    
+
     DATA_PATH: Path to the dataset file
     """
     import pandas as pd
+
     from bias_auditor import BiasAuditor
-    
+
     # Load data
     path = Path(data_path)
     if path.suffix == ".csv":
@@ -220,30 +221,30 @@ def quick_check(data_path: str, protected: tuple, target: Optional[str]):
     else:
         console.print(f"[red]Unsupported file format: {path.suffix}[/red]")
         sys.exit(1)
-    
+
     auditor = BiasAuditor(
         protected_attributes=list(protected),
         target_column=target,
         verbose=False,
     )
-    
+
     results = auditor.quick_check(data)
-    
+
     # Display results
     console.print(Panel.fit("Quick Bias Check Results", style="bold blue"))
-    
+
     table = Table(show_header=True, header_style="bold")
     table.add_column("Metric")
     table.add_column("Value")
-    
+
     for key, value in results["key_metrics"].items():
         if isinstance(value, float):
             table.add_row(key, f"{value:.4f}")
         else:
             table.add_row(key, str(value))
-    
+
     console.print(table)
-    
+
     if results["has_critical_bias"]:
         console.print("[red]⚠ Critical bias detected![/red]")
         sys.exit(1)
@@ -254,12 +255,11 @@ def quick_check(data_path: str, protected: tuple, target: Optional[str]):
 
 def _print_summary(report):
     """Print a formatted summary of the audit report."""
-    from bias_auditor.core.report import BiasSeverity
-    
+
     # Header panel
     score_color = "green" if report.overall_bias_score < 0.3 else \
                   "yellow" if report.overall_bias_score < 0.6 else "red"
-    
+
     console.print(Panel(
         f"[bold]Bias Score:[/bold] [{score_color}]{report.overall_bias_score:.0%}[/{score_color}]\n"
         f"[bold]Critical:[/bold] [red]{len(report.critical_findings)}[/red]  "
@@ -268,14 +268,14 @@ def _print_summary(report):
         title="Audit Summary",
         border_style="blue",
     ))
-    
+
     # Category scores
     if report.category_scores:
         table = Table(title="Bias by Category", show_header=True)
         table.add_column("Category")
         table.add_column("Score")
         table.add_column("Level", width=20)
-        
+
         for cat, score in sorted(report.category_scores.items(), key=lambda x: -x[1]):
             bar_length = int(score * 20)
             bar = "█" * bar_length + "░" * (20 - bar_length)
@@ -285,16 +285,16 @@ def _print_summary(report):
                 f"{score:.0%}",
                 f"[{color}]{bar}[/{color}]",
             )
-        
+
         console.print(table)
-    
+
     # Critical findings
     if report.critical_findings:
         console.print("\n[bold red]Critical Findings:[/bold red]")
         for finding in report.critical_findings[:5]:
             console.print(f"  [red]●[/red] {finding.title}")
             console.print(f"    {finding.description[:100]}...")
-    
+
     # Top remediation
     if report.critical_findings:
         console.print("\n[bold green]Recommended Actions:[/bold green]")
