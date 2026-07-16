@@ -282,6 +282,23 @@ class AuditReport:
     def remediation_plan(self) -> str: ...
 ```
 
+## Claude Skill
+
+This repo ships a [Claude skill](skills/dataset-bias-audit/SKILL.md) that
+teaches Claude (Claude Code, claude.ai, or the desktop app) to run bias audits
+with this tool — point Claude at any tabular dataset and ask "check this for
+bias". To install it:
+
+- **Claude Code**: copy `skills/dataset-bias-audit/` into `~/.claude/skills/`
+  (or your project's `.claude/skills/`).
+- **claude.ai / desktop**: package it as a `.skill` file (zip the
+  `dataset-bias-audit` folder) and upload it under Settings → Capabilities.
+
+The skill installs this package automatically (from a bundled wheel or from
+this repo) and follows a verified workflow: inspect the data, run the audit
+with auto-detection, verify the detection decisions, and report findings with
+statistical significance and honest caveats.
+
 ## Contributing
 
 Contributions welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md).
